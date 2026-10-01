@@ -4,6 +4,7 @@ use std::fs;
 
 use std::io::{self, Write};
 use std::os::unix::fs::PermissionsExt;
+use std::process::Command;
 
 fn main() {
     loop {
@@ -28,10 +29,28 @@ fn main() {
                     println!("{}: not found", &e[5..]);
                 }
             }
-            _ => {
-                println!("{}: command not found", input.trim());
+            rest => {
+                let (cmd, args) = rest.split_once(' ').unwrap_or((rest, ""));
+                if let Some(cmd_path) = is_valid_cmd(cmd) {
+                    exe_cmd(cmd_path, args)
+                } else {
+                    println!("{}: command not found", rest.trim());
+                }
             }
         }
+    }
+}
+
+fn exe_cmd(path: String, args: &str) {
+    let mut command = Command::new(path);
+    for arg in args.split(' ') {
+        command.arg(arg);
+    }
+    let output = command.output().unwrap();
+    if output.status.success() {
+        println!("{}", String::from_utf8_lossy(&output.stdout));
+    } else {
+        println!("{}", String::from_utf8_lossy(&output.stderr));
     }
 }
 
