@@ -31,8 +31,8 @@ fn main() {
             }
             rest => {
                 let (cmd, args) = rest.split_once(' ').unwrap_or((rest, ""));
-                if let Some(cmd_path) = is_valid_cmd(cmd) {
-                    exe_cmd(cmd_path, args)
+                if is_valid_cmd(cmd).is_some() {
+                    exe_cmd(cmd, args)
                 } else {
                     println!("{}: command not found", rest.trim());
                 }
@@ -41,7 +41,7 @@ fn main() {
     }
 }
 
-fn exe_cmd(path: String, args: &str) {
+fn exe_cmd(path: &str, args: &str) {
     let mut command = Command::new(path);
     for arg in args.split(' ') {
         command.arg(arg);
