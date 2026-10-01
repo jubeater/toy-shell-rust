@@ -7,14 +7,24 @@ fn main() {
         io::stdout().flush().unwrap();
         let mut input = String::new();
         io::stdin().read_line(&mut input).unwrap();
-        input = input.trim().to_string();
-        if input == "exit" {
-            break;
-        }
-        if input.starts_with("echo") {
-            println!("{}", &input[5..]);
-        } else {
-            println!("{}: command not found", input);
+        match input.trim() {
+            "exit" => {
+                break;
+            }
+            e if e.starts_with("echo") => {
+                println!("{}", &input[5..]);
+            }
+            e if e.starts_with("type") => {
+                let build_ins = ["echo", "exit", "type"];
+                if build_ins.contains(&&e[5..]) {
+                    println!("{} is a shell builtin", &e[5..]);
+                } else {
+                    println!("{}: not found", &e[5..]);
+                }
+            }
+            _ => {
+                println!("{}: command not found", input);
+            }
         }
     }
 }
