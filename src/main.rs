@@ -15,8 +15,8 @@ fn main() {
                 println!("{}", &e[5..]);
             }
             e if e.starts_with("type") => {
-                let build_ins = ["echo", "exit", "type"];
-                if build_ins.contains(&&e[5..]) {
+                const BUILD_INS: [&str; 3] = ["echo", "exit", "type"];
+                if BUILD_INS.contains(&&e[5..]) {
                     println!("{} is a shell builtin", &e[5..]);
                 } else {
                     println!("{}: not found", &e[5..]);
