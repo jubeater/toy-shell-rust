@@ -1,6 +1,9 @@
 use std::env;
 #[allow(unused_imports)]
+use std::fs;
+
 use std::io::{self, Write};
+use std::os::unix::fs::PermissionsExt;
 
 fn main() {
     loop {
@@ -39,9 +42,14 @@ fn is_valid_cmd(cmd: &str) -> Option<String> {
 
     for mut path in env::split_paths(&path_var) {
         path.push(&target_name);
-        if path.is_file() {
+        if path.is_file()
+            && let Ok(metadata) = fs::metadata(&path)
+            && metadata.is_file()
+            && (metadata.permissions().mode() & 0o111) != 0
+        {
             return Some(path.to_string_lossy().into_owned());
         }
     }
+
     None
 }
