@@ -48,9 +48,9 @@ fn exe_cmd(path: &str, args: &str) {
     }
     let output = command.output().unwrap();
     if output.status.success() {
-        println!("{}", String::from_utf8_lossy(&output.stdout));
+        println!("{}", String::from_utf8_lossy(&output.stdout).trim());
     } else {
-        println!("{}", String::from_utf8_lossy(&output.stderr));
+        println!("{}", String::from_utf8_lossy(&output.stderr).trim());
     }
 }
 
