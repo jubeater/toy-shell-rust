@@ -5,12 +5,16 @@ fn main() {
     loop {
         print!("$ ");
         io::stdout().flush().unwrap();
-        let mut command = String::new();
-        io::stdin().read_line(&mut command).unwrap();
-        command = command.trim().to_string();
-        if command == "exit" {
+        let mut input = String::new();
+        io::stdin().read_line(&mut input).unwrap();
+        input = input.trim().to_string();
+        if input == "exit" {
             break;
         }
-        println!("{}: command not found", command);
+        if input.starts_with("echo") {
+            println!("{}", &input[5..]);
+        } else {
+            println!("{}: command not found", input);
+        }
     }
 }
