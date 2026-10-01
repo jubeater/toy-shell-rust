@@ -19,7 +19,10 @@ fn main() {
                 println!("{}", &e[5..]);
             }
             e if e.starts_with("type") => {
-                if let Some(cmd_path) = is_valid_cmd(&e[5..]) {
+                const BUILDIN_CMDS: [&str; 3] = ["echo", "exit", "type"];
+                if BUILDIN_CMDS.contains(&&e[5..]) {
+                    println!("{} is a shell builtin", &e[5..]);
+                } else if let Some(cmd_path) = is_valid_cmd(&e[5..]) {
                     println!("{} is {}", &e[5..], cmd_path);
                 } else {
                     println!("{}: not found", &e[5..]);
