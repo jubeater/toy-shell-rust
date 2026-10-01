@@ -12,7 +12,7 @@ fn main() {
                 break;
             }
             e if e.starts_with("echo") => {
-                println!("{}", &input[5..]);
+                println!("{}", &e[5..]);
             }
             e if e.starts_with("type") => {
                 let build_ins = ["echo", "exit", "type"];
