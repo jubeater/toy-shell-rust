@@ -28,8 +28,8 @@ fn main() {
                     println!("{}: not found", &e[5..]);
                 }
             }
-            cmd => {
-                println!("{}: command not found", cmd);
+            _ => {
+                println!("{}: command not found", input.trim());
             }
         }
     }
