@@ -22,8 +22,8 @@ fn main() {
                     println!("{}: not found", &e[5..]);
                 }
             }
-            _ => {
-                println!("{}: command not found", input);
+            cmd => {
+                println!("{}: command not found", cmd);
             }
         }
     }
