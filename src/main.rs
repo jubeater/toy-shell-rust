@@ -1,7 +1,6 @@
 use std::env;
 #[allow(unused_imports)]
 use std::fs;
-
 use std::io::{self, Write};
 use std::os::unix::fs::PermissionsExt;
 use std::process::Command;
@@ -61,7 +60,6 @@ fn is_valid_cmd(cmd: &str) -> Option<String> {
     } else {
         cmd.to_string()
     };
-
     for mut path in env::split_paths(&path_var) {
         path.push(&target_name);
         if path.is_file()
@@ -72,6 +70,5 @@ fn is_valid_cmd(cmd: &str) -> Option<String> {
             return Some(path.to_string_lossy().into_owned());
         }
     }
-
     None
 }
