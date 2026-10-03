@@ -3,7 +3,6 @@ use std::env;
 use std::fs;
 use std::io::{self, Write};
 use std::os::unix::fs::PermissionsExt;
-use std::path::PathBuf;
 use std::process::Command;
 
 fn main() {
@@ -26,7 +25,7 @@ fn main() {
                 if BUILDIN_CMDS.contains(&args) {
                     println!("{} is a shell builtin", args);
                 } else if let Some(cmd_path) = is_valid_cmd(args) {
-                    println!("{} is {}", args, cmd_path.to_string_lossy());
+                    println!("{} is {}", args, cmd_path);
                 } else {
                     println!("{}: not found", args);
                 }
@@ -46,7 +45,7 @@ fn main() {
     }
 }
 
-fn exe_cmd(path: &PathBuf, args: &str) {
+fn exe_cmd(path: &str, args: &str) {
     let mut command = Command::new(path);
     for arg in args.split_whitespace() {
         command.arg(arg);
@@ -59,7 +58,7 @@ fn exe_cmd(path: &PathBuf, args: &str) {
     }
 }
 
-fn is_valid_cmd(cmd: &str) -> Option<PathBuf> {
+fn is_valid_cmd(cmd: &str) -> Option<String> {
     let path_var = env::var_os("PATH").unwrap();
     let target_name = if cfg!(windows) {
         format!("{}.exe", cmd)
@@ -73,7 +72,7 @@ fn is_valid_cmd(cmd: &str) -> Option<PathBuf> {
             && metadata.is_file()
             && (metadata.permissions().mode() & 0o111) != 0
         {
-            return Some(path);
+            return Some(path.to_string_lossy().into_owned());
         }
     }
     None
