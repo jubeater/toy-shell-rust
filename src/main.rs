@@ -1,9 +1,10 @@
-use std::env;
 #[allow(unused_imports)]
 use std::fs;
 use std::io::{self, Write};
 use std::os::unix::fs::PermissionsExt;
+use std::path::PathBuf;
 use std::process::Command;
+use std::{env, path};
 
 fn main() {
     loop {
@@ -25,14 +26,14 @@ fn main() {
                 if BUILDIN_CMDS.contains(&args) {
                     println!("{} is a shell builtin", args);
                 } else if let Some(cmd_path) = is_valid_cmd(args) {
-                    println!("{} is {}", args, cmd_path);
+                    println!("{} is {}", args, cmd_path.to_string_lossy());
                 } else {
                     println!("{}: not found", args);
                 }
             }
             rest => {
-                if is_valid_cmd(rest).is_some() {
-                    exe_cmd(rest, args)
+                if let Some(path) = is_valid_cmd(rest) {
+                    exe_cmd(&path, args)
                 } else {
                     println!("{}: command not found", rest.trim());
                 }
@@ -41,9 +42,9 @@ fn main() {
     }
 }
 
-fn exe_cmd(path: &str, args: &str) {
+fn exe_cmd(path: &PathBuf, args: &str) {
     let mut command = Command::new(path);
-    for arg in args.split(' ') {
+    for arg in args.split_whitespace() {
         command.arg(arg);
     }
     let output = command.output().unwrap();
@@ -54,7 +55,7 @@ fn exe_cmd(path: &str, args: &str) {
     }
 }
 
-fn is_valid_cmd(cmd: &str) -> Option<String> {
+fn is_valid_cmd(cmd: &str) -> Option<PathBuf> {
     let path_var = env::var_os("PATH").unwrap();
     let target_name = if cfg!(windows) {
         format!("{}.exe", cmd)
@@ -68,7 +69,7 @@ fn is_valid_cmd(cmd: &str) -> Option<String> {
             && metadata.is_file()
             && (metadata.permissions().mode() & 0o111) != 0
         {
-            return Some(path.to_string_lossy().into_owned());
+            return Some(path);
         }
     }
     None
