@@ -18,10 +18,10 @@ fn main() {
             "exit" => {
                 break;
             }
-            e if e == "echo" => {
+            "echo" => {
                 println!("{}", args.trim());
             }
-            e if e == "type" => {
+            "type" => {
                 const BUILDIN_CMDS: [&str; 4] = ["echo", "exit", "type", "pwd"];
                 if BUILDIN_CMDS.contains(&args) {
                     println!("{} is a shell builtin", args);
@@ -30,6 +30,10 @@ fn main() {
                 } else {
                     println!("{}: not found", args);
                 }
+            }
+            "pwd" => {
+                let path = env::current_dir().unwrap();
+                println!("{}", path.to_string_lossy());
             }
             rest => {
                 if let Some(path) = is_valid_cmd(rest) {
