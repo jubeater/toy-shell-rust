@@ -1,10 +1,10 @@
+use std::env;
 #[allow(unused_imports)]
 use std::fs;
 use std::io::{self, Write};
 use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
 use std::process::Command;
-use std::{env, path};
 
 fn main() {
     loop {
@@ -22,7 +22,7 @@ fn main() {
                 println!("{}", args.trim());
             }
             e if e == "type" => {
-                const BUILDIN_CMDS: [&str; 3] = ["echo", "exit", "type"];
+                const BUILDIN_CMDS: [&str; 4] = ["echo", "exit", "type", "pwd"];
                 if BUILDIN_CMDS.contains(&args) {
                     println!("{} is a shell builtin", args);
                 } else if let Some(cmd_path) = is_valid_cmd(args) {
