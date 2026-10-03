@@ -72,7 +72,7 @@ fn is_valid_cmd(cmd: &str) -> Option<String> {
             && metadata.is_file()
             && (metadata.permissions().mode() & 0o111) != 0
         {
-            return Some(path.to_string_lossy().into_owned());
+            return Some(target_name);
         }
     }
     None
