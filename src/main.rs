@@ -11,14 +11,14 @@ fn main() {
         io::stdout().flush().unwrap();
         let mut input = String::new();
         io::stdin().read_line(&mut input).unwrap();
-
-        let (cmd, args) = input.split_once(' ').unwrap_or((&input, ""));
+        let whole_cmd = input.trim();
+        let (cmd, args) = whole_cmd.split_once(' ').unwrap_or((whole_cmd, ""));
         match cmd {
             "exit" => {
                 break;
             }
             e if e == "echo" => {
-                println!("{}", args);
+                println!("{}", args.trim());
             }
             e if e == "type" => {
                 const BUILDIN_CMDS: [&str; 3] = ["echo", "exit", "type"];
