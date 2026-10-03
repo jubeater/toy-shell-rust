@@ -11,27 +11,28 @@ fn main() {
         io::stdout().flush().unwrap();
         let mut input = String::new();
         io::stdin().read_line(&mut input).unwrap();
-        match input.trim() {
+
+        let (cmd, args) = input.split_once(' ').unwrap_or((&input, ""));
+        match cmd {
             "exit" => {
                 break;
             }
-            e if e.starts_with("echo") => {
-                println!("{}", &e[5..]);
+            e if e == "echo" => {
+                println!("{}", args);
             }
-            e if e.starts_with("type") => {
+            e if e == "type" => {
                 const BUILDIN_CMDS: [&str; 3] = ["echo", "exit", "type"];
-                if BUILDIN_CMDS.contains(&&e[5..]) {
-                    println!("{} is a shell builtin", &e[5..]);
-                } else if let Some(cmd_path) = is_valid_cmd(&e[5..]) {
-                    println!("{} is {}", &e[5..], cmd_path);
+                if BUILDIN_CMDS.contains(&args) {
+                    println!("{} is a shell builtin", args);
+                } else if let Some(cmd_path) = is_valid_cmd(args) {
+                    println!("{} is {}", args, cmd_path);
                 } else {
-                    println!("{}: not found", &e[5..]);
+                    println!("{}: not found", args);
                 }
             }
             rest => {
-                let (cmd, args) = rest.split_once(' ').unwrap_or((rest, ""));
-                if is_valid_cmd(cmd).is_some() {
-                    exe_cmd(cmd, args)
+                if is_valid_cmd(rest).is_some() {
+                    exe_cmd(rest, args)
                 } else {
                     println!("{}: command not found", rest.trim());
                 }
