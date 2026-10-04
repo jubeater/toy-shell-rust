@@ -4,7 +4,7 @@ use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
 use std::process::Command;
 
-pub fn execute_external(cmd: &str, args: &str) {
+pub fn execute_external(cmd: &str, args: &[String]) {
     if find_executable(cmd).is_some() {
         exe_cmd(&cmd, args)
     } else {
@@ -32,9 +32,9 @@ pub fn find_executable(cmd: &str) -> Option<PathBuf> {
     None
 }
 
-fn exe_cmd(path: &str, args: &str) {
+fn exe_cmd(path: &str, args: &[String]) {
     let mut command = Command::new(path);
-    for arg in args.split_whitespace() {
+    for arg in args {
         command.arg(arg);
     }
     let output = command.output().unwrap();

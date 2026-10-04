@@ -24,12 +24,12 @@ impl Builtin {
         }
     }
 
-    pub fn execute(&self, args: &str) -> BuiltinResult {
+    pub fn execute(&self, args: &[String]) -> BuiltinResult {
         match self {
             Self::Exit => BuiltinResult::Exit,
 
             Self::Echo => {
-                println!("{}", args.trim());
+                println!("{}", args.join(" "));
                 BuiltinResult::Continue
             }
 
@@ -40,28 +40,32 @@ impl Builtin {
             }
 
             Self::Cd => {
-                if args.starts_with("~") {
-                    if let Some(mut home) = env::home_dir() {
-                        if args.len() > 1 {
-                            home.push(&args[1..]);
-                        };
-                        env::set_current_dir(&home).unwrap();
-                    } else {
-                        eprintln!("Unable to detect the home directory.");
+                if let Some(path) = args.first() {
+                    if path.starts_with('~') {
+                        if let Some(mut home) = env::home_dir() {
+                            if args.len() > 1 {
+                                home.push(&path[1..]);
+                            };
+                            env::set_current_dir(&home).unwrap();
+                        } else {
+                            eprintln!("Unable to detect the home directory.");
+                        }
+                    } else if env::set_current_dir(path).is_err() {
+                        println!("cd: {}: No such file or directory", path);
                     }
-                } else if env::set_current_dir(args).is_err() {
-                    println!("cd: {}: No such file or directory", args);
                 }
                 BuiltinResult::Continue
             }
 
             Self::Type => {
-                if Self::from_cmd(&args).is_some() {
-                    println!("{} is a shell builtin", args);
-                } else if let Some(cmd_path) = find_executable(args) {
-                    println!("{} is {}", args, cmd_path.to_string_lossy().into_owned());
-                } else {
-                    println!("{}: not found", args);
+                if let Some(cmd) = args.first() {
+                    if Self::from_cmd(cmd).is_some() {
+                        println!("{} is a shell builtin", cmd);
+                    } else if let Some(cmd_path) = find_executable(cmd) {
+                        println!("{} is {}", cmd, cmd_path.to_string_lossy().into_owned());
+                    } else {
+                        println!("{}: not found", cmd);
+                    }
                 }
                 BuiltinResult::Continue
             }

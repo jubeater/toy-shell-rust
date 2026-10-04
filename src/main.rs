@@ -12,7 +12,12 @@ fn main() {
         let mut input = String::new();
         io::stdin().read_line(&mut input).unwrap();
         let whole_cmd = input.trim();
-        let (cmd, args) = whole_cmd.split_once(' ').unwrap_or((whole_cmd, ""));
+
+        let tokens = parse_command(whole_cmd);
+
+        let Some((cmd, args)) = tokens.split_first() else {
+            continue;
+        };
         match builtin::Builtin::from_cmd(cmd) {
             Some(builtin) => match builtin.execute(args) {
                 builtin::BuiltinResult::Continue => {}
@@ -21,4 +26,47 @@ fn main() {
             None => executable::execute_external(cmd, args),
         }
     }
+}
+
+fn parse_command(input: &str) -> Vec<String> {
+    let mut args = Vec::new();
+    let mut current = String::new();
+    let mut in_single_quote = false;
+
+    for ch in input.chars() {
+        if in_single_quote {
+            match ch {
+                '\'' => {
+                    in_single_quote = false;
+                    args.push(String::from(&current[1..current.len()]));
+                    current = String::new();
+                }
+                _ => {
+                    current.push(ch);
+                }
+            }
+        } else {
+            match ch {
+                '\'' => {
+                    in_single_quote = true;
+                }
+
+                ch if ch.is_whitespace() => {
+                    // finish current argument if appropriate
+                    let token = current.trim();
+                    if !token.is_empty() {
+                        args.push(token.to_string());
+                    }
+                    current = String::new();
+                }
+
+                _ => {
+                    current.push(ch);
+                }
+            }
+        }
+    }
+
+    // possibly push final argument
+    args
 }
