@@ -35,8 +35,11 @@ fn main() {
                 println!("{}", path.to_string_lossy());
             }
             "cd" => {
-                if args == "~" {
-                    if let Some(home) = env::home_dir() {
+                if args.starts_with("~") {
+                    if let Some(mut home) = env::home_dir() {
+                        if args.len() > 1 {
+                            home.push(&args[1..]);
+                        };
                         env::set_current_dir(&home).unwrap();
                     } else {
                         eprintln!("Unable to detect the home directory.");
