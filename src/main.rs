@@ -38,9 +38,8 @@ fn parse_command(input: &str) -> Vec<String> {
             match ch {
                 '\'' => {
                     in_single_quote = false;
-                    let token = &current[1..current.len()];
-                    if !token.is_empty() {
-                        args.push(token.to_string());
+                    if !current.is_empty() {
+                        args.push(current.clone());
                     }
                     current = String::new();
                 }
