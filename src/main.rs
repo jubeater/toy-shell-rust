@@ -69,6 +69,9 @@ fn parse_command(input: &str) -> Vec<String> {
         }
     }
 
-    // possibly push final argument
+    let token = current.trim();
+    if !token.is_empty() {
+        args.push(token.to_string());
+    }
     args
 }
