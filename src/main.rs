@@ -35,9 +35,7 @@ fn main() {
                 println!("{}", path.to_string_lossy());
             }
             "cd" => {
-                if env::set_current_dir(args).is_ok() {
-                    println!("{}", args);
-                } else {
+                if env::set_current_dir(args).is_err() {
                     println!("{}: {}: No such file or directory", cmd, args);
                 }
             }
