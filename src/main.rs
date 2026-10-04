@@ -35,7 +35,13 @@ fn main() {
                 println!("{}", path.to_string_lossy());
             }
             "cd" => {
-                if env::set_current_dir(args).is_err() {
+                if args == "~" {
+                    if let Some(home) = env::home_dir() {
+                        env::set_current_dir(&home).unwrap();
+                    } else {
+                        eprintln!("Unable to detect the home directory.");
+                    }
+                } else if env::set_current_dir(args).is_err() {
                     println!("{}: {}: No such file or directory", cmd, args);
                 }
             }
