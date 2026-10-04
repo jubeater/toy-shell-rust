@@ -1,3 +1,4 @@
+use shell_words;
 #[allow(unused_imports)]
 use std::env;
 use std::io::{self, Write};
@@ -11,11 +12,10 @@ fn main() {
         io::stdout().flush().unwrap();
         let mut input = String::new();
         io::stdin().read_line(&mut input).unwrap();
-        let whole_cmd = input.trim();
 
-        let tokens = parse_command(whole_cmd);
+        let parts = shell_words::split(&input).unwrap();
 
-        let Some((cmd, args)) = tokens.split_first() else {
+        let Some((cmd, args)) = parts.split_first() else {
             continue;
         };
         match builtin::Builtin::from_cmd(cmd) {
@@ -28,59 +28,59 @@ fn main() {
     }
 }
 
-fn parse_command(input: &str) -> Vec<String> {
-    let mut args = Vec::new();
-    let mut current = String::new();
-    let mut in_single_quote: bool = false;
-    let mut in_double_quote: bool = false;
-    let mut in_escaping: bool = false;
+// fn parse_command(input: &str) -> Vec<String> {
+//     let mut args = Vec::new();
+//     let mut current = String::new();
+//     let mut in_single_quote: bool = false;
+//     let mut in_double_quote: bool = false;
+//     let mut in_escaping: bool = false;
 
-    for ch in input.chars() {
-        if in_single_quote || in_double_quote {
-            match ch {
-                '\'' if !in_double_quote => {
-                    in_single_quote = false;
-                }
-                '\"' if !in_single_quote => {
-                    in_double_quote = false;
-                }
-                _ => {
-                    current.push(ch);
-                }
-            }
-        } else if in_escaping {
-            current.push(ch);
-            in_escaping = false;
-        } else {
-            match ch {
-                '\'' => {
-                    in_single_quote = true;
-                }
-                '\"' => {
-                    in_double_quote = true;
-                }
-                '\\' => {
-                    in_escaping = true;
-                }
-                ch if ch.is_whitespace() => {
-                    // finish current argument if appropriate
-                    let token = current.trim();
-                    if !token.is_empty() {
-                        args.push(token.to_string());
-                    }
-                    current = String::new();
-                }
+//     for ch in input.chars() {
+//         if in_single_quote || in_double_quote {
+//             match ch {
+//                 '\'' if !in_double_quote => {
+//                     in_single_quote = false;
+//                 }
+//                 '\"' if !in_single_quote => {
+//                     in_double_quote = false;
+//                 }
+//                 _ => {
+//                     current.push(ch);
+//                 }
+//             }
+//         } else if in_escaping {
+//             current.push(ch);
+//             in_escaping = false;
+//         } else {
+//             match ch {
+//                 '\'' => {
+//                     in_single_quote = true;
+//                 }
+//                 '\"' => {
+//                     in_double_quote = true;
+//                 }
+//                 '\\' => {
+//                     in_escaping = true;
+//                 }
+//                 ch if ch.is_whitespace() => {
+//                     // finish current argument if appropriate
+//                     let token = current.trim();
+//                     if !token.is_empty() {
+//                         args.push(token.to_string());
+//                     }
+//                     current = String::new();
+//                 }
 
-                _ => {
-                    current.push(ch);
-                }
-            }
-        }
-    }
+//                 _ => {
+//                     current.push(ch);
+//                 }
+//             }
+//         }
+//     }
 
-    let token = current.trim();
-    if !token.is_empty() {
-        args.push(token.to_string());
-    }
-    args
-}
+//     let token = current.trim();
+//     if !token.is_empty() {
+//         args.push(token.to_string());
+//     }
+//     args
+// }
