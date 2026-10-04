@@ -38,10 +38,6 @@ fn parse_command(input: &str) -> Vec<String> {
             match ch {
                 '\'' => {
                     in_single_quote = false;
-                    if !current.is_empty() {
-                        args.push(current.clone());
-                    }
-                    current = String::new();
                 }
                 _ => {
                     current.push(ch);
