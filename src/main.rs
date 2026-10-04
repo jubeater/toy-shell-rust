@@ -1,9 +1,8 @@
-use std::env;
 #[allow(unused_imports)]
+use std::env;
 use std::fs;
 use std::io::{self, Write};
 use std::os::unix::fs::PermissionsExt;
-use std::path::PathBuf;
 use std::process::Command;
 
 fn main() {
@@ -22,7 +21,7 @@ fn main() {
                 println!("{}", args.trim());
             }
             "type" => {
-                const BUILDIN_CMDS: [&str; 4] = ["echo", "exit", "type", "pwd"];
+                const BUILDIN_CMDS: [&str; 5] = ["echo", "exit", "type", "pwd", "cd"];
                 if BUILDIN_CMDS.contains(&args) {
                     println!("{} is a shell builtin", args);
                 } else if let Some(cmd_path) = is_valid_cmd(args) {
@@ -34,6 +33,13 @@ fn main() {
             "pwd" => {
                 let path = env::current_dir().unwrap();
                 println!("{}", path.to_string_lossy());
+            }
+            "cd" => {
+                if env::set_current_dir(args).is_ok() {
+                    println!("{}", args);
+                } else {
+                    println!("{}: {}: No such file or directory", cmd, args);
+                }
             }
             rest => {
                 if is_valid_cmd(rest).is_some() {
