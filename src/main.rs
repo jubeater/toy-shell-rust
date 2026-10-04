@@ -41,7 +41,7 @@ fn parse_command(input: &str) -> Vec<String> {
                 '\'' if !in_double_quote => {
                     in_single_quote = false;
                 }
-                '\"' => {
+                '\"' if !in_single_quote => {
                     in_double_quote = false;
                 }
                 _ => {
