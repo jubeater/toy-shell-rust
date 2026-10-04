@@ -3,6 +3,7 @@ use std::env;
 use std::fs;
 use std::io::{self, Write};
 use std::os::unix::fs::PermissionsExt;
+use std::path::PathBuf;
 use std::process::Command;
 
 fn main() {
@@ -35,8 +36,8 @@ fn main() {
                 println!("{}", path.to_string_lossy());
             }
             rest => {
-                if let Some(path) = is_valid_cmd(rest) {
-                    exe_cmd(&path, args)
+                if is_valid_cmd(rest).is_some() {
+                    exe_cmd(&rest, args)
                 } else {
                     println!("{}: command not found", rest.trim());
                 }
@@ -72,7 +73,7 @@ fn is_valid_cmd(cmd: &str) -> Option<String> {
             && metadata.is_file()
             && (metadata.permissions().mode() & 0o111) != 0
         {
-            return Some(target_name);
+            return Some(path.to_string_lossy().into_owned());
         }
     }
     None
