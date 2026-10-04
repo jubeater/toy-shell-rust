@@ -32,12 +32,16 @@ fn parse_command(input: &str) -> Vec<String> {
     let mut args = Vec::new();
     let mut current = String::new();
     let mut in_single_quote = false;
+    let mut in_double_quote: bool = false;
 
     for ch in input.chars() {
-        if in_single_quote {
+        if in_single_quote || in_double_quote {
             match ch {
-                '\'' => {
+                '\'' if !in_double_quote => {
                     in_single_quote = false;
+                }
+                '\"' => {
+                    in_double_quote = false;
                 }
                 _ => {
                     current.push(ch);
@@ -48,7 +52,9 @@ fn parse_command(input: &str) -> Vec<String> {
                 '\'' => {
                     in_single_quote = true;
                 }
-
+                '\"' => {
+                    in_double_quote = true;
+                }
                 ch if ch.is_whitespace() => {
                     // finish current argument if appropriate
                     let token = current.trim();
