@@ -4,7 +4,6 @@ use std::fs;
 use std::fs::File;
 use std::fs::OpenOptions;
 use std::os::unix::fs::PermissionsExt;
-use std::os::unix::process::CommandExt;
 use std::path::PathBuf;
 use std::process::Command;
 use std::process::Stdio;
@@ -41,12 +40,6 @@ pub fn execute_external(
             command.stderr(Stdio::from(file));
         }
         command.status().unwrap();
-        // let output = command.output().unwrap();
-        // if output.status.success() {
-        //     println!("{}", String::from_utf8_lossy(&output.stdout).trim());
-        // } else {
-        //     println!("{}", String::from_utf8_lossy(&output.stderr).trim());
-        // }
     } else {
         println!("{}: command not found", cmd.trim());
     }
