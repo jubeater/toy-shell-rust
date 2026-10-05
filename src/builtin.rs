@@ -1,5 +1,5 @@
 use crate::executable::find_executable;
-use std::env;
+use std::{env, io::Write};
 pub enum Builtin {
     Exit,
     Echo,
@@ -24,18 +24,23 @@ impl Builtin {
         }
     }
 
-    pub fn execute(&self, args: &[String]) -> BuiltinResult {
+    pub fn execute(
+        &self,
+        args: &[String],
+        stdout: &mut dyn Write,
+        stderr: &mut dyn Write,
+    ) -> BuiltinResult {
         match self {
             Self::Exit => BuiltinResult::Exit,
 
             Self::Echo => {
-                println!("{}", args.join(" "));
+                writeln!(stdout, "{}", args.join(" ")).unwrap();
                 BuiltinResult::Continue
             }
 
             Self::Pwd => {
                 let path = env::current_dir().unwrap();
-                println!("{}", path.to_string_lossy());
+                writeln!(stdout, "{}", path.to_string_lossy()).unwrap();
                 BuiltinResult::Continue
             }
 
@@ -48,10 +53,10 @@ impl Builtin {
                             };
                             env::set_current_dir(&home).unwrap();
                         } else {
-                            eprintln!("Unable to detect the home directory.");
+                            writeln!(stderr, "Unable to detect the home directory.").unwrap();
                         }
                     } else if env::set_current_dir(path).is_err() {
-                        println!("cd: {}: No such file or directory", path);
+                        writeln!(stdout, "cd: {}: No such file or directory", path).unwrap();
                     }
                 }
                 BuiltinResult::Continue
@@ -60,11 +65,17 @@ impl Builtin {
             Self::Type => {
                 if let Some(cmd) = args.first() {
                     if Self::from_cmd(cmd).is_some() {
-                        println!("{} is a shell builtin", cmd);
+                        writeln!(stdout, "{} is a shell builtin", cmd).unwrap();
                     } else if let Some(cmd_path) = find_executable(cmd) {
-                        println!("{} is {}", cmd, cmd_path.to_string_lossy().into_owned());
+                        writeln!(
+                            stdout,
+                            "{} is {}",
+                            cmd,
+                            cmd_path.to_string_lossy().into_owned()
+                        )
+                        .unwrap();
                     } else {
-                        println!("{}: not found", cmd);
+                        writeln!(stdout, "{}: not found", cmd).unwrap();
                     }
                 }
                 BuiltinResult::Continue
