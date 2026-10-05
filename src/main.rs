@@ -16,7 +16,13 @@ fn main() {
         let mut input = String::new();
         io::stdin().read_line(&mut input).unwrap();
 
-        let parts = shell_words::split(&input).unwrap();
+        let parts = match shell_words::split(&input) {
+            Ok(parts) => parts,
+            Err(err) => {
+                eprintln!("{err}");
+                continue;
+            }
+        };
         let parsed = match parse_command(&parts) {
             Ok(parsed) => parsed,
             Err(_) => {
