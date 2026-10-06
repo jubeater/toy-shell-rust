@@ -13,6 +13,14 @@ use crossterm::{
 };
 use parser::{Redirect, parse_command};
 
+struct RawModeGuard;
+
+impl Drop for RawModeGuard {
+    fn drop(&mut self) {
+        let _ = disable_raw_mode();
+    }
+}
+
 fn main() {
     enable_raw_mode().unwrap();
     loop {
@@ -50,62 +58,64 @@ fn main() {
                     _ => {}
                 }
             }
-            let parts = match shell_words::split(&input) {
-                Ok(parts) => parts,
-                Err(err) => {
-                    eprintln!("{err}");
-                    continue;
-                }
-            };
-            let parsed = match parse_command(&parts) {
-                Ok(parsed) => parsed,
-                Err(_) => {
-                    eprintln!("err!");
-                    continue;
-                }
-            };
-            match builtin::Builtin::from_cmd(&parsed.cmd) {
-                Some(builtin) => {
-                    let mut stdout: Box<dyn Write> = match &parsed.stdout {
-                        None => Box::new(io::stdout()),
-                        Some(Redirect::Truncate(path)) => {
-                            Box::new(std::fs::File::create(path).unwrap())
-                        }
-                        Some(Redirect::Append(path)) => Box::new(
-                            std::fs::OpenOptions::new()
-                                .create(true)
-                                .append(true)
-                                .open(path)
-                                .unwrap(),
-                        ),
-                    };
-
-                    let mut stderr: Box<dyn Write> = match &parsed.stderr {
-                        None => Box::new(io::stderr()),
-                        Some(Redirect::Truncate(path)) => {
-                            Box::new(std::fs::File::create(path).unwrap())
-                        }
-                        Some(Redirect::Append(path)) => Box::new(
-                            std::fs::OpenOptions::new()
-                                .create(true)
-                                .append(true)
-                                .open(path)
-                                .unwrap(),
-                        ),
-                    };
-
-                    match builtin.execute(&parsed.args, stdout.as_mut(), stderr.as_mut()) {
-                        builtin::BuiltinResult::Continue => {}
-                        builtin::BuiltinResult::Exit => break,
-                    }
-                }
-                None => executable::execute_external(
-                    &parsed.cmd,
-                    &parsed.args,
-                    parsed.stdout.as_ref(),
-                    parsed.stderr.as_ref(),
-                ),
+        }
+        let parts = match shell_words::split(&input) {
+            Ok(parts) => parts,
+            Err(err) => {
+                eprintln!("{err}");
+                continue;
             }
+        };
+        let parsed = match parse_command(&parts) {
+            Ok(parsed) => parsed,
+            Err(_) => {
+                eprintln!("err!");
+                continue;
+            }
+        };
+        match builtin::Builtin::from_cmd(&parsed.cmd) {
+            Some(builtin) => {
+                let mut stdout: Box<dyn Write> = match &parsed.stdout {
+                    None => Box::new(io::stdout()),
+                    Some(Redirect::Truncate(path)) => {
+                        Box::new(std::fs::File::create(path).unwrap())
+                    }
+                    Some(Redirect::Append(path)) => Box::new(
+                        std::fs::OpenOptions::new()
+                            .create(true)
+                            .append(true)
+                            .open(path)
+                            .unwrap(),
+                    ),
+                };
+
+                let mut stderr: Box<dyn Write> = match &parsed.stderr {
+                    None => Box::new(io::stderr()),
+                    Some(Redirect::Truncate(path)) => {
+                        Box::new(std::fs::File::create(path).unwrap())
+                    }
+                    Some(Redirect::Append(path)) => Box::new(
+                        std::fs::OpenOptions::new()
+                            .create(true)
+                            .append(true)
+                            .open(path)
+                            .unwrap(),
+                    ),
+                };
+
+                match builtin.execute(&parsed.args, stdout.as_mut(), stderr.as_mut()) {
+                    builtin::BuiltinResult::Continue => {}
+                    builtin::BuiltinResult::Exit => break,
+                }
+            }
+            None => executable::execute_external(
+                &parsed.cmd,
+                &parsed.args,
+                parsed.stdout.as_ref(),
+                parsed.stderr.as_ref(),
+            ),
         }
     }
+    disable_raw_mode().unwrap();
+    let _raw_mode = RawModeGuard;
 }
