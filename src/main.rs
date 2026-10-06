@@ -36,7 +36,9 @@ fn main() {
 
                     KeyCode::Tab => {
                         if let Some(completed) = builtin::Builtin::complete(&input) {
-                            input = completed.to_string();
+                            if let Some((_before, after)) = completed.split_once(&input) {
+                                println!("{after}");
+                            }
                         }
                     }
 
@@ -105,5 +107,4 @@ fn main() {
             }
         }
     }
-    // disable_raw_mode().unwrap();
 }
