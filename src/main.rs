@@ -37,8 +37,8 @@ fn main() {
                     KeyCode::Tab => {
                         if let Some(completed) = builtin::Builtin::complete(&input) {
                             if let Some((_before, after)) = completed.split_once(&input) {
-                                println!("{after}");
                                 input.push_str(after);
+                                print!("{after}");
                             }
                         }
                     }
