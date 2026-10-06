@@ -7,15 +7,45 @@ mod builtin;
 mod executable;
 mod parser;
 
+use crossterm::{
+    event::{self, Event, KeyCode},
+    terminal::{disable_raw_mode, enable_raw_mode},
+};
 use parser::{Redirect, parse_command};
 
 fn main() {
+    let mut input = String::new();
+    enable_raw_mode().unwrap();
+
     loop {
         print!("$ ");
-        io::stdout().flush().unwrap();
-        let mut input = String::new();
-        io::stdin().read_line(&mut input).unwrap();
+        // io::stdout().flush().unwrap();
+        // let mut input = String::new();
+        // io::stdin().read_line(&mut input).unwrap();
+        if let Event::Key(key) = event::read().unwrap() {
+            match key.code {
+                KeyCode::Char(c) => {
+                    input.push(c);
+                    print!("{c}");
+                }
 
+                KeyCode::Backspace => {
+                    input.pop();
+                }
+
+                KeyCode::Tab => {
+                    if let Some(completed) = builtin::Builtin::complete(&input) {
+                        input = completed.to_string();
+                    }
+                }
+
+                KeyCode::Enter => {
+                    break;
+                }
+
+                _ => {}
+            }
+        }
         let parts = match shell_words::split(&input) {
             Ok(parts) => parts,
             Err(err) => {
@@ -73,4 +103,5 @@ fn main() {
             ),
         }
     }
+    disable_raw_mode().unwrap();
 }

@@ -13,6 +13,7 @@ pub enum BuiltinResult {
 }
 
 impl Builtin {
+    pub const ALL: &'static [&'static str] = &["exit", "echo", "type", "pwd", "cd"];
     pub fn from_cmd(cmd: &str) -> Option<Self> {
         match cmd {
             "exit" => Some(Self::Exit),
@@ -81,5 +82,12 @@ impl Builtin {
                 BuiltinResult::Continue
             }
         }
+    }
+
+    pub fn complete(prefix: &str) -> Option<&'static str> {
+        Self::ALL
+            .iter()
+            .map(|builtin| builtin.name())
+            .find(|name| name.starts_with(prefix))
     }
 }
