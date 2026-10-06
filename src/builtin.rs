@@ -25,6 +25,16 @@ impl Builtin {
         }
     }
 
+    pub fn name(&self) -> &'static str {
+        match self {
+            Self::Exit => "exit",
+            Self::Echo => "echo",
+            Self::Type => "type",
+            Self::Pwd => "pwd",
+            Self::Cd => "cd",
+        }
+    }
+
     pub fn execute(
         &self,
         args: &[String],
@@ -87,7 +97,7 @@ impl Builtin {
     pub fn complete(prefix: &str) -> Option<&'static str> {
         Self::ALL
             .iter()
-            .map(|builtin| builtin.name())
+            .map(|builtin| *builtin)
             .find(|name| name.starts_with(prefix))
     }
 }
