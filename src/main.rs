@@ -36,6 +36,7 @@ fn main() {
                     KeyCode::Char(c) => {
                         input.push(c);
                         print!("{c}");
+                        io::stdout().flush().unwrap();
                     }
 
                     KeyCode::Backspace => {
@@ -47,6 +48,7 @@ fn main() {
                             if let Some((_before, after)) = completed.split_once(&input) {
                                 input.push_str(after);
                                 print!("{after}");
+                                io::stdout().flush().unwrap();
                             }
                         }
                     }
