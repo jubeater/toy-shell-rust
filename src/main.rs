@@ -80,7 +80,6 @@ fn read_input(interactive: bool) -> io::Result<Option<String>> {
                             io::stdout().flush()?;
                         }
                     } else {
-                        print!("{}", input.clone());
                         io::stdout().flush()?;
                     }
                 }
