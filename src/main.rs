@@ -62,6 +62,7 @@ fn main() {
                 }
             }
         }
+        eprintln!("input is: {}", &input.to_string());
         let parts = match shell_words::split(&input) {
             Ok(parts) => parts,
             Err(err) => {
