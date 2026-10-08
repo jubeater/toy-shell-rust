@@ -1,14 +1,14 @@
 use shell_words;
 #[allow(unused_imports)]
 use std::env;
-use std::io::{self, Write};
+use std::io::{self, IsTerminal, Write};
 
 mod builtin;
 mod executable;
 mod parser;
 
 use crossterm::{
-    event::{self, Event, KeyCode},
+    event::{self, Event, KeyCode, KeyEventKind, KeyModifiers},
     terminal::{disable_raw_mode, enable_raw_mode},
 };
 use parser::{Redirect, parse_command};
@@ -21,48 +21,90 @@ impl Drop for RawModeGuard {
     }
 }
 
-fn main() {
-    enable_raw_mode().unwrap();
+fn read_input(interactive: bool) -> io::Result<Option<String>> {
+    let mut input = String::new();
+    if !interactive {
+        return match io::stdin().read_line(&mut input)? {
+            0 => Ok(None),
+            _ => Ok(Some(input)),
+        };
+    }
+
+    enable_raw_mode()?;
+    let _raw_mode = RawModeGuard;
     loop {
-        print!("$ ");
-        io::stdout().flush().unwrap();
-        let mut input = String::new();
-        loop {
-            // io::stdout().flush().unwrap();
-            // let mut input = String::new();
-            // io::stdin().read_line(&mut input).unwrap();
-            if let Event::Key(key) = event::read().unwrap() {
-                match key.code {
-                    KeyCode::Char(c) => {
-                        input.push(c);
-                        print!("{c}");
-                        io::stdout().flush().unwrap();
-                    }
+        if let Event::Key(key) = event::read()? {
+            if key.kind == KeyEventKind::Release {
+                continue;
+            }
+            match key.code {
+                // Raw-mode LF is decoded as Ctrl+J; CR is decoded as Enter.
+                KeyCode::Char('j' | 'm') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                    print!("\r\n");
+                    io::stdout().flush()?;
+                    return Ok(Some(input));
+                }
 
-                    KeyCode::Backspace => {
-                        // input.pop();
-                    }
+                KeyCode::Char('d')
+                    if key.modifiers.contains(KeyModifiers::CONTROL) && input.is_empty() =>
+                {
+                    return Ok(None);
+                }
 
-                    KeyCode::Tab => {
-                        if let Some(completed) = builtin::Builtin::complete(&input) {
-                            if let Some((_before, after)) = completed.split_once(&input) {
-                                input.push_str(after);
-                                input.push(' ');
-                                print!("{after} ");
-                                io::stdout().flush().unwrap();
-                            }
+                KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                    print!("^C\r\n");
+                    io::stdout().flush()?;
+                    return Ok(Some(String::new()));
+                }
+
+                KeyCode::Char(c)
+                    if !key
+                        .modifiers
+                        .intersects(KeyModifiers::CONTROL | KeyModifiers::ALT) =>
+                {
+                    input.push(c);
+                    print!("{c}");
+                    io::stdout().flush()?;
+                }
+
+                KeyCode::Backspace => {
+                    // input.pop();
+                }
+
+                KeyCode::Tab => {
+                    if let Some(completed) = builtin::Builtin::complete(&input) {
+                        if let Some((_before, after)) = completed.split_once(&input) {
+                            input.push_str(after);
+                            input.push(' ');
+                            print!("{after} ");
+                            io::stdout().flush()?;
                         }
                     }
-
-                    KeyCode::Enter => {
-                        break;
-                    }
-
-                    _ => {}
                 }
+
+                KeyCode::Enter => {
+                    print!("\r\n");
+                    io::stdout().flush()?;
+                    return Ok(Some(input));
+                }
+
+                _ => {}
             }
         }
-        eprintln!("input is: {}", &input.to_string());
+    }
+}
+
+fn main() -> io::Result<()> {
+    let interactive = io::stdin().is_terminal();
+    loop {
+        print!("$ ");
+        io::stdout().flush()?;
+        let Some(input) = read_input(interactive)? else {
+            break;
+        };
+        if input.trim().is_empty() {
+            continue;
+        }
         let parts = match shell_words::split(&input) {
             Ok(parts) => parts,
             Err(err) => {
@@ -120,6 +162,5 @@ fn main() {
             ),
         }
     }
-    disable_raw_mode().unwrap();
-    let _raw_mode = RawModeGuard;
+    Ok(())
 }
