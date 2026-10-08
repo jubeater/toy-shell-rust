@@ -40,7 +40,7 @@ fn main() {
                     }
 
                     KeyCode::Backspace => {
-                        input.pop();
+                        // input.pop();
                     }
 
                     KeyCode::Tab => {
