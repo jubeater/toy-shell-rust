@@ -72,15 +72,18 @@ fn read_input(interactive: bool) -> io::Result<Option<String>> {
                 }
 
                 KeyCode::Tab => {
-                    if let Some(completed) = builtin::Builtin::complete(&input) {
-                        if let Some((_before, after)) = completed.split_once(&input) {
+                    let completed = builtin::Builtin::complete(&input)
+                        .map(str::to_owned)
+                        .or_else(|| executable::complete(&input));
+
+                    if let Some(completed) = completed {
+                        if let Some(after) = completed.strip_prefix(&input) {
                             input.push_str(after);
                             input.push(' ');
                             print!("{after} ");
                             io::stdout().flush()?;
                         }
                     } else {
-                        // print bell charactor to indicate no match for auto complete
                         print!("\x07");
                         io::stdout().flush()?;
                     }

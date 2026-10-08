@@ -64,3 +64,33 @@ pub fn find_executable(cmd: &str) -> Option<PathBuf> {
     }
     None
 }
+
+pub fn complete(prefix: &str) -> Option<String> {
+    let path_var = env::var_os("PATH").unwrap();
+    for dir in env::split_paths(&path_var) {
+        let Ok(entries) = fs::read_dir(dir) else {
+            continue;
+        };
+
+        for entry in entries.flatten() {
+            let path = entry.path();
+
+            let Ok(metadata) = fs::metadata(&path) else {
+                continue;
+            };
+
+            if !metadata.is_file() || metadata.permissions().mode() & 0o111 == 0 {
+                continue;
+            }
+
+            let Some(name) = path.file_name().and_then(|name| name.to_str()) else {
+                continue;
+            };
+
+            if name.starts_with(prefix) {
+                return Some(name.to_string());
+            }
+        }
+    }
+    None
+}
