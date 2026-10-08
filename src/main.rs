@@ -80,6 +80,8 @@ fn read_input(interactive: bool) -> io::Result<Option<String>> {
                             io::stdout().flush()?;
                         }
                     } else {
+                        // print bell charactor to indicate no match for auto complete
+                        print!("\x07");
                         io::stdout().flush()?;
                     }
                 }
