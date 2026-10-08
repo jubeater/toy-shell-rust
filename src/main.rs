@@ -47,7 +47,8 @@ fn main() {
                         if let Some(completed) = builtin::Builtin::complete(&input) {
                             if let Some((_before, after)) = completed.split_once(&input) {
                                 input.push_str(after);
-                                print!("{after}");
+                                input.push(' ');
+                                print!("{after} ");
                                 io::stdout().flush().unwrap();
                             }
                         }
