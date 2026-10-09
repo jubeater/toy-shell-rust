@@ -1,160 +1,54 @@
 use shell_words;
 #[allow(unused_imports)]
-use std::env;
 use std::io::{self, IsTerminal, Write};
 
+use rustyline::error::ReadlineError;
+use rustyline::history::DefaultHistory;
+use rustyline::{CompletionType, Config, Editor};
+
 mod builtin;
+mod completion;
 mod executable;
 mod parser;
 
-use crossterm::{
-    event::{self, Event, KeyCode, KeyEventKind, KeyModifiers},
-    terminal::{disable_raw_mode, enable_raw_mode},
-};
+use completion::ShellHelper;
 use parser::{Redirect, parse_command};
 
-struct RawModeGuard;
+type ShellEditor = Editor<ShellHelper, DefaultHistory>;
 
-impl Drop for RawModeGuard {
-    fn drop(&mut self) {
-        let _ = disable_raw_mode();
-    }
-}
-
-fn longest_common_prefix(matches: &[String]) -> String {
-    let mut prefix = matches[0].clone();
-
-    for s in &matches[1..] {
-        while !s.starts_with(&prefix) {
-            if prefix.is_empty() {
-                return String::new();
-            }
-            prefix.pop(); // Remove the last character and retry
-        }
-    }
-
-    prefix
-}
-
-fn read_input(interactive: bool) -> io::Result<Option<String>> {
-    let mut input = String::new();
-    if !interactive {
-        return match io::stdin().read_line(&mut input)? {
-            0 => Ok(None),
-            _ => Ok(Some(input)),
+fn read_input(interactive: bool, editor: &mut ShellEditor) -> io::Result<Option<String>> {
+    if interactive {
+        return match editor.readline("$ ") {
+            Ok(line) => Ok(Some(line)),
+            Err(ReadlineError::Interrupted) => Ok(Some(String::new())),
+            Err(ReadlineError::Eof) => Ok(None),
+            Err(err) => Err(io::Error::other(err)),
         };
     }
 
-    enable_raw_mode()?;
-    let _raw_mode = RawModeGuard;
-    let mut previous_was_tab = false;
-    loop {
-        if let Event::Key(key) = event::read()? {
-            if key.kind == KeyEventKind::Release {
-                continue;
-            }
-            match key.code {
-                // Raw-mode LF is decoded as Ctrl+J; CR is decoded as Enter.
-                KeyCode::Char('j' | 'm') if key.modifiers.contains(KeyModifiers::CONTROL) => {
-                    print!("\r\n");
-                    io::stdout().flush()?;
-                    return Ok(Some(input));
-                }
+    print!("$ ");
+    io::stdout().flush()?;
 
-                KeyCode::Char('d')
-                    if key.modifiers.contains(KeyModifiers::CONTROL) && input.is_empty() =>
-                {
-                    return Ok(None);
-                }
+    let mut input = String::new();
 
-                KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
-                    print!("^C\r\n");
-                    io::stdout().flush()?;
-                    return Ok(Some(String::new()));
-                }
-
-                KeyCode::Char(c)
-                    if !key
-                        .modifiers
-                        .intersects(KeyModifiers::CONTROL | KeyModifiers::ALT) =>
-                {
-                    input.push(c);
-                    print!("{c}");
-                    io::stdout().flush()?;
-                }
-
-                KeyCode::Backspace => {
-                    // input.pop();
-                }
-
-                KeyCode::Tab => {
-                    let mut matches: Vec<String> = builtin::Builtin::complete(&input)
-                        .into_iter()
-                        .map(str::to_owned)
-                        .collect();
-
-                    matches.extend(executable::complete(&input));
-
-                    matches.sort();
-                    matches.dedup();
-
-                    match matches.as_slice() {
-                        [] => {
-                            print!("\x07");
-                            previous_was_tab = false;
-                        }
-
-                        [completed] => {
-                            if let Some(after) = completed.strip_prefix(&input) {
-                                input.push_str(after);
-                                input.push(' ');
-                                print!("{after} ");
-                            }
-
-                            previous_was_tab = false;
-                        }
-                        _ => {
-                            let lcp = longest_common_prefix(&matches);
-                            if lcp.len() > input.len() {
-                                // extend input to LCP
-                                if let Some(after) = lcp.strip_prefix(&input) {
-                                    input.push_str(after);
-                                    print!("{after}");
-                                }
-                                previous_was_tab = false;
-                            } else {
-                                if previous_was_tab {
-                                    print!("\r\n{}\r\n$ {}", matches.join("  "), input);
-                                    previous_was_tab = false;
-                                } else {
-                                    print!("\x07");
-                                    previous_was_tab = true;
-                                }
-                            }
-                        }
-                    }
-
-                    io::stdout().flush()?;
-                }
-
-                KeyCode::Enter => {
-                    print!("\r\n");
-                    io::stdout().flush()?;
-                    return Ok(Some(input));
-                }
-
-                _ => {}
-            }
-        }
+    match io::stdin().read_line(&mut input)? {
+        0 => Ok(None),
+        _ => Ok(Some(input)),
     }
 }
 
 fn main() -> io::Result<()> {
     let interactive = io::stdin().is_terminal();
+
+    let config = Config::builder()
+        .completion_type(CompletionType::List)
+        .build();
+
+    let mut editor = ShellEditor::with_config(config).map_err(io::Error::other)?;
+
+    editor.set_helper(Some(ShellHelper::new()));
     loop {
-        print!("$ ");
-        io::stdout().flush()?;
-        let Some(input) = read_input(interactive)? else {
+        let Some(input) = read_input(interactive, &mut editor)? else {
             break;
         };
         if input.trim().is_empty() {
