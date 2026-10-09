@@ -43,8 +43,7 @@ impl Completer for ShellHelper {
         let prefix = &before_cursor[command_start..];
 
         // Arguments and explicit paths use filename completion.
-        let mut names = Vec::new();
-        if prefix.chars().any(char::is_whitespace) || prefix.contains('/') {
+        let (start, names) = if prefix.chars().any(char::is_whitespace) || prefix.contains('/') {
             let start = before_cursor
                 .char_indices()
                 .rev()
@@ -53,10 +52,10 @@ impl Completer for ShellHelper {
 
             let filename_prefix = &line[start..pos];
 
-            names = complete_filenames(filename_prefix)?;
+            (start, complete_filenames(filename_prefix)?)
         } else {
-            names = complete_commands(prefix);
-        }
+            (command_start, complete_commands(prefix))
+        };
 
         let unique = names.len() == 1;
         let candidates = names
@@ -71,7 +70,7 @@ impl Completer for ShellHelper {
             })
             .collect();
 
-        Ok((command_start, candidates))
+        Ok((start, candidates))
     }
 }
 
