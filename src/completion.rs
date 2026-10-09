@@ -72,8 +72,14 @@ impl Completer for ShellHelper {
 
 fn complete_filenames(prefix: &str) -> std::io::Result<Vec<String>> {
     let mut matches = Vec::new();
+    // Split from the right, maximum 2 parts
+    let mut parts = prefix.rsplitn(2, '\\');
 
-    for entry in std::fs::read_dir(".")?.flatten() {
+    // Because it splits from the right, the rightmost part comes first
+    let _filename = parts.next().unwrap_or("");
+    let directory = parts.next().unwrap_or(".");
+
+    for entry in std::fs::read_dir(directory)?.flatten() {
         // This first version completes regular files only.
         if !entry.path().is_file() {
             continue;
