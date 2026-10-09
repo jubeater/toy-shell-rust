@@ -116,9 +116,7 @@ fn complete_filenames(prefix: &str) -> std::io::Result<Vec<String>> {
         }
     }
 
-    if matchdirs.len() == 1 {
-        matches.extend(matchdirs);
-    }
+    matches.extend(matchdirs);
     matches.sort();
     Ok(matches)
 }
