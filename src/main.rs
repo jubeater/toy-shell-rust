@@ -21,7 +21,7 @@ impl Drop for RawModeGuard {
     }
 }
 
-fn longest_common_prefix(matches: &Vec<String>) -> String {
+fn longest_common_prefix(matches: &[String]) -> String {
     let mut prefix = matches[0].clone();
 
     for s in &matches[1..] {
@@ -121,6 +121,7 @@ fn read_input(interactive: bool) -> io::Result<Option<String>> {
                                     input.push_str(after);
                                     print!("{after}");
                                 }
+                                previous_was_tab = false;
                             } else {
                                 if previous_was_tab {
                                     print!("\r\n{}\r\n$ {}", matches.join("  "), input);
