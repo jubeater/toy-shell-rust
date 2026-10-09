@@ -94,10 +94,11 @@ impl Builtin {
         }
     }
 
-    pub fn complete(prefix: &str) -> Option<&'static str> {
+    pub fn complete(prefix: &str) -> Vec<&'static str> {
         Self::ALL
             .iter()
-            .map(|builtin| *builtin)
-            .find(|name| name.starts_with(prefix))
+            .copied()
+            .filter(|name| name.starts_with(prefix))
+            .collect()
     }
 }

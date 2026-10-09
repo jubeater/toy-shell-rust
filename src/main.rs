@@ -32,6 +32,7 @@ fn read_input(interactive: bool) -> io::Result<Option<String>> {
 
     enable_raw_mode()?;
     let _raw_mode = RawModeGuard;
+    let mut previous_was_tab = false;
     loop {
         if let Event::Key(key) = event::read()? {
             if key.kind == KeyEventKind::Release {
@@ -72,21 +73,45 @@ fn read_input(interactive: bool) -> io::Result<Option<String>> {
                 }
 
                 KeyCode::Tab => {
-                    let completed = builtin::Builtin::complete(&input)
+                    let mut matches: Vec<String> = builtin::Builtin::complete(&input)
+                        .into_iter()
                         .map(str::to_owned)
-                        .or_else(|| executable::complete(&input));
+                        .collect();
 
-                    if let Some(completed) = completed {
-                        if let Some(after) = completed.strip_prefix(&input) {
-                            input.push_str(after);
-                            input.push(' ');
-                            print!("{after} ");
-                            io::stdout().flush()?;
+                    matches.extend(executable::complete(&input));
+
+                    matches.sort();
+                    matches.dedup();
+
+                    match matches.as_slice() {
+                        [] => {
+                            print!("\x07");
+                            previous_was_tab = false;
                         }
-                    } else {
-                        print!("\x07");
-                        io::stdout().flush()?;
+
+                        [completed] => {
+                            if let Some(after) = completed.strip_prefix(&input) {
+                                input.push_str(after);
+                                input.push(' ');
+                                print!("{after} ");
+                            }
+
+                            previous_was_tab = false;
+                        }
+
+                        _ if previous_was_tab => {
+                            print!("\r\n{}\r\n$ {}", matches.join("  "), input);
+
+                            previous_was_tab = false;
+                        }
+
+                        _ => {
+                            print!("\x07");
+                            previous_was_tab = true;
+                        }
                     }
+
+                    io::stdout().flush()?;
                 }
 
                 KeyCode::Enter => {

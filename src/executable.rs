@@ -65,8 +65,13 @@ pub fn find_executable(cmd: &str) -> Option<PathBuf> {
     None
 }
 
-pub fn complete(prefix: &str) -> Option<String> {
-    let path_var = env::var_os("PATH").unwrap();
+pub fn complete(prefix: &str) -> Vec<String> {
+    let Some(path_var) = env::var_os("PATH") else {
+        return vec![];
+    };
+
+    let mut matches = Vec::new();
+
     for dir in env::split_paths(&path_var) {
         let Ok(entries) = fs::read_dir(dir) else {
             continue;
@@ -88,9 +93,13 @@ pub fn complete(prefix: &str) -> Option<String> {
             };
 
             if name.starts_with(prefix) {
-                return Some(name.to_string());
+                matches.push(name.to_string());
             }
         }
     }
-    None
+
+    matches.sort();
+    matches.dedup();
+
+    matches
 }
