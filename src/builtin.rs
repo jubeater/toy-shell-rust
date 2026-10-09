@@ -25,7 +25,7 @@ impl Builtin {
         }
     }
 
-    pub fn name(&self) -> &'static str {
+    pub fn _name(&self) -> &'static str {
         match self {
             Self::Exit => "exit",
             Self::Echo => "echo",

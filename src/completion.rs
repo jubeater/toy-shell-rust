@@ -2,20 +2,16 @@ use crate::{builtin, executable};
 
 use rustyline::Context;
 use rustyline::Helper;
-use rustyline::completion::{Completer, FilenameCompleter, Pair};
+use rustyline::completion::{Completer, Pair};
 use rustyline::highlight::Highlighter;
 use rustyline::hint::Hinter;
 use rustyline::validate::Validator;
 
-pub struct ShellHelper {
-    files: FilenameCompleter,
-}
+pub struct ShellHelper;
 
 impl ShellHelper {
     pub fn new() -> Self {
-        Self {
-            files: FilenameCompleter::new(),
-        }
+        Self
     }
 }
 
@@ -36,7 +32,7 @@ impl Completer for ShellHelper {
         &self,
         line: &str,
         pos: usize,
-        ctx: &Context<'_>,
+        _ctx: &Context<'_>,
     ) -> rustyline::Result<(usize, Vec<Pair>)> {
         let before_cursor = &line[..pos];
         let command_start = before_cursor.len() - before_cursor.trim_start().len();
