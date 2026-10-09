@@ -21,6 +21,21 @@ impl Drop for RawModeGuard {
     }
 }
 
+fn longest_common_prefix(matches: &Vec<String>) -> String {
+    let mut prefix = matches[0].clone();
+
+    for s in &matches[1..] {
+        while !s.starts_with(&prefix) {
+            if prefix.is_empty() {
+                return String::new();
+            }
+            prefix.pop(); // Remove the last character and retry
+        }
+    }
+
+    prefix
+}
+
 fn read_input(interactive: bool) -> io::Result<Option<String>> {
     let mut input = String::new();
     if !interactive {
@@ -98,16 +113,23 @@ fn read_input(interactive: bool) -> io::Result<Option<String>> {
 
                             previous_was_tab = false;
                         }
-
-                        _ if previous_was_tab => {
-                            print!("\r\n{}\r\n$ {}", matches.join("  "), input);
-
-                            previous_was_tab = false;
-                        }
-
                         _ => {
-                            print!("\x07");
-                            previous_was_tab = true;
+                            let lcp = longest_common_prefix(&matches);
+                            if lcp.len() > input.len() {
+                                // extend input to LCP
+                                if let Some(after) = lcp.strip_prefix(&input) {
+                                    input.push_str(after);
+                                    print!("{after}");
+                                }
+                            } else {
+                                if previous_was_tab {
+                                    print!("\r\n{}\r\n$ {}", matches.join("  "), input);
+                                    previous_was_tab = false;
+                                } else {
+                                    print!("\x07");
+                                    previous_was_tab = true;
+                                }
+                            }
                         }
                     }
 
