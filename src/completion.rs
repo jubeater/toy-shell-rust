@@ -76,7 +76,7 @@ fn complete_filenames(prefix: &str) -> std::io::Result<Vec<String>> {
     let mut parts = prefix.rsplitn(2, '/');
 
     // Because it splits from the right, the rightmost part comes first
-    let _filename = parts.next().unwrap_or("");
+    let filename = parts.next().unwrap_or("");
     let directory = parts.next().unwrap_or(".");
 
     for entry in std::fs::read_dir(directory)?.flatten() {
@@ -89,8 +89,13 @@ fn complete_filenames(prefix: &str) -> std::io::Result<Vec<String>> {
             continue;
         };
 
-        if name.starts_with(prefix) {
-            matches.push(name);
+        if name.starts_with(filename) {
+            let current_match = if directory == "." {
+                name
+            } else {
+                format!("{directory}/{name}")
+            };
+            matches.push(current_match);
         }
     }
 
