@@ -57,7 +57,7 @@ impl Completer for ShellHelper {
         let candidates = names
             .into_iter()
             .map(|name| Pair {
-                replacement: if unique {
+                replacement: if unique && name.chars().last() != Some('/') {
                     format!("{name} ")
                 } else {
                     name.clone()
@@ -72,6 +72,7 @@ impl Completer for ShellHelper {
 
 fn complete_filenames(prefix: &str) -> std::io::Result<Vec<String>> {
     let mut matches = Vec::new();
+    let mut matchdirs = Vec::new();
     // Split from the right, maximum 2 parts
     let mut parts = prefix.rsplitn(2, '/');
 
@@ -80,25 +81,44 @@ fn complete_filenames(prefix: &str) -> std::io::Result<Vec<String>> {
     let directory = parts.next().unwrap_or(".");
 
     for entry in std::fs::read_dir(directory)?.flatten() {
-        // This first version completes regular files only.
-        if !entry.path().is_file() {
-            continue;
-        }
+        match entry {
+            dir_entry if dir_entry.path().is_file() => {
+                let Ok(name) = dir_entry.file_name().into_string() else {
+                    continue;
+                };
 
-        let Ok(name) = entry.file_name().into_string() else {
-            continue;
-        };
+                if name.starts_with(filename) {
+                    let current_match = if directory == "." {
+                        name
+                    } else {
+                        format!("{directory}/{name}")
+                    };
+                    matches.push(current_match);
+                }
+            }
+            dir_entry if dir_entry.path().is_dir() => {
+                let Ok(name) = dir_entry.file_name().into_string() else {
+                    continue;
+                };
 
-        if name.starts_with(filename) {
-            let current_match = if directory == "." {
-                name
-            } else {
-                format!("{directory}/{name}")
-            };
-            matches.push(current_match);
+                if name.starts_with(filename) {
+                    let current_match = if directory == "." {
+                        format!("{name}/")
+                    } else {
+                        format!("{directory}/{name}/")
+                    };
+                    matchdirs.push(current_match);
+                }
+            }
+            _ => {
+                continue;
+            }
         }
     }
 
+    if matchdirs.len() == 1 {
+        matches.extend(matchdirs);
+    }
     matches.sort();
     Ok(matches)
 }
