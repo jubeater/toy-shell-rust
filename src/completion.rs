@@ -72,42 +72,31 @@ impl Completer for ShellHelper {
 
 fn complete_filenames(prefix: &str) -> std::io::Result<Vec<String>> {
     let mut matches = Vec::new();
-    let mut matchdirs = Vec::new();
     // Split from the right, maximum 2 parts
-    let mut parts = prefix.rsplitn(2, '/');
+    let (path_prefix, filename_prefix) = match prefix.rfind('/') {
+        Some(index) => prefix.split_at(index + 1),
+        None => ("", prefix),
+    };
 
-    // Because it splits from the right, the rightmost part comes first
-    let filename = parts.next().unwrap_or("");
-    let directory = parts.next().unwrap_or(".");
+    let search_directory = if path_prefix.is_empty() {
+        "."
+    } else {
+        path_prefix
+    };
 
-    for entry in std::fs::read_dir(directory)?.flatten() {
+    for entry in std::fs::read_dir(search_directory)?.flatten() {
         match entry {
-            dir_entry if dir_entry.path().is_file() => {
+            dir_entry if dir_entry.path().is_file() | dir_entry.path().is_dir() => {
                 let Ok(name) = dir_entry.file_name().into_string() else {
                     continue;
                 };
 
-                if name.starts_with(filename) {
-                    let current_match = if directory == "." {
-                        name
-                    } else {
-                        format!("{directory}/{name}")
-                    };
+                if name.starts_with(filename_prefix) {
+                    let mut current_match = format!("{path_prefix}{name}");
+                    if dir_entry.path().is_dir() {
+                        current_match.push('/');
+                    }
                     matches.push(current_match);
-                }
-            }
-            dir_entry if dir_entry.path().is_dir() => {
-                let Ok(name) = dir_entry.file_name().into_string() else {
-                    continue;
-                };
-
-                if name.starts_with(filename) {
-                    let current_match = if directory == "." {
-                        format!("{name}/")
-                    } else {
-                        format!("{directory}/{name}/")
-                    };
-                    matchdirs.push(current_match);
                 }
             }
             _ => {
@@ -116,7 +105,6 @@ fn complete_filenames(prefix: &str) -> std::io::Result<Vec<String>> {
         }
     }
 
-    matches.extend(matchdirs);
     matches.sort();
     Ok(matches)
 }
