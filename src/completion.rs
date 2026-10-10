@@ -57,7 +57,7 @@ impl Completer for ShellHelper {
         let candidates = names
             .into_iter()
             .map(|name| Pair {
-                replacement: if unique && name.chars().last() != Some('/') {
+                replacement: if unique && !name.ends_with('/') {
                     format!("{name} ")
                 } else {
                     name.clone()
@@ -85,24 +85,29 @@ fn complete_filenames(prefix: &str) -> std::io::Result<Vec<String>> {
     };
 
     for entry in std::fs::read_dir(search_directory)?.flatten() {
-        match entry {
-            dir_entry if dir_entry.path().is_file() | dir_entry.path().is_dir() => {
-                let Ok(name) = dir_entry.file_name().into_string() else {
-                    continue;
-                };
+        let Ok(name) = entry.file_name().into_string() else {
+            continue;
+        };
 
-                if name.starts_with(filename_prefix) {
-                    let mut current_match = format!("{path_prefix}{name}");
-                    if dir_entry.path().is_dir() {
-                        current_match.push('/');
-                    }
-                    matches.push(current_match);
-                }
-            }
-            _ => {
-                continue;
-            }
+        if !name.starts_with(filename_prefix) {
+            continue;
         }
+
+        let Ok(metadata) = std::fs::metadata(entry.path()) else {
+            continue;
+        };
+
+        if !metadata.is_file() && !metadata.is_dir() {
+            continue;
+        }
+
+        let mut candidate = format!("{path_prefix}{name}");
+
+        if metadata.is_dir() {
+            candidate.push('/');
+        }
+
+        matches.push(candidate);
     }
 
     matches.sort();
