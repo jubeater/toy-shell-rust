@@ -41,8 +41,7 @@ pub fn find_executable(cmd: &str) -> Option<PathBuf> {
     };
     for mut path in env::split_paths(&path_var) {
         path.push(&target_name);
-        if path.is_file()
-            && let Ok(metadata) = fs::metadata(&path)
+        if let Ok(metadata) = fs::metadata(&path)
             && metadata.is_file()
             && (metadata.permissions().mode() & 0o111) != 0
         {
