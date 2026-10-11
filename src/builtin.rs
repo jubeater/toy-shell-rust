@@ -84,19 +84,21 @@ impl Builtin {
             }
 
             Self::Type => {
-                if let Some(cmd) = args.first() {
-                    if Self::from_cmd(cmd).is_some() {
-                        writeln!(stdout, "{} is a shell builtin", cmd)?;
-                    } else if let Some(cmd_path) = find_executable(cmd) {
-                        writeln!(
-                            stdout,
-                            "{} is {}",
-                            cmd,
-                            cmd_path.to_string_lossy().into_owned()
-                        )?;
-                    } else {
-                        writeln!(stdout, "{}: not found", cmd)?;
-                    }
+                let Some(cmd) = args.first() else {
+                    return Ok(BuiltinResult::Continue);
+                };
+
+                if Self::from_cmd(cmd).is_some() {
+                    writeln!(stdout, "{} is a shell builtin", cmd)?;
+                } else if let Some(cmd_path) = find_executable(cmd) {
+                    writeln!(
+                        stdout,
+                        "{} is {}",
+                        cmd,
+                        cmd_path.to_string_lossy().into_owned()
+                    )?;
+                } else {
+                    writeln!(stdout, "{}: not found", cmd)?;
                 }
                 Ok(BuiltinResult::Continue)
             }
