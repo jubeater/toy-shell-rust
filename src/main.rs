@@ -1,5 +1,4 @@
 // main.rs
-use shell_words;
 use std::io::{self, IsTerminal, Write};
 
 use rustyline::error::ReadlineError;
@@ -47,10 +46,7 @@ fn main() -> io::Result<()> {
     let mut editor = ShellEditor::with_config(config).map_err(io::Error::other)?;
 
     editor.set_helper(Some(ShellHelper::new()));
-    loop {
-        let Some(input) = read_input(interactive, &mut editor)? else {
-            break;
-        };
+    while let Some(input) = read_input(interactive, &mut editor)? {
         if input.trim().is_empty() {
             continue;
         }
@@ -61,7 +57,7 @@ fn main() -> io::Result<()> {
                 continue;
             }
         };
-        let parsed = match parse_command(&parts) {
+        let parsed = match parse_command(parts) {
             Ok(parsed) => parsed,
             Err(_) => {
                 eprintln!("err!");

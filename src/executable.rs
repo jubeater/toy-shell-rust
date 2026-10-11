@@ -13,8 +13,8 @@ pub fn execute_external(
     stdout: Option<&Redirect>,
     stderr: Option<&Redirect>,
 ) -> io::Result<()> {
-    if find_executable(cmd).is_some() {
-        let mut command = Command::new(cmd);
+    if let Some(path) = find_executable(cmd) {
+        let mut command = Command::new(path);
         command.args(args);
         if let Some(redirect) = stdout {
             let file = redirect.open()?;
@@ -33,7 +33,7 @@ pub fn execute_external(
 }
 
 pub fn find_executable(cmd: &str) -> Option<PathBuf> {
-    let path_var = env::var_os("PATH").unwrap();
+    let path_var = env::var_os("PATH")?;
     let target_name = if cfg!(windows) {
         format!("{}.exe", cmd)
     } else {
@@ -83,9 +83,6 @@ pub fn complete(prefix: &str) -> Vec<String> {
             }
         }
     }
-
-    matches.sort();
-    matches.dedup();
 
     matches
 }

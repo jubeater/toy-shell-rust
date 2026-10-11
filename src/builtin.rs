@@ -15,7 +15,7 @@ pub enum BuiltinResult {
 }
 
 impl Builtin {
-    pub const ALL: &'static [&'static str] = &["exit", "echo", "type", "pwd", "cd", "complete"];
+    pub const ALL: &[&str] = &["exit", "echo", "type", "pwd", "cd", "complete"];
     pub fn from_cmd(cmd: &str) -> Option<Self> {
         match cmd {
             "exit" => Some(Self::Exit),

@@ -36,31 +36,30 @@ enum ExpectedRedirect {
     NoRedirect,
 }
 
-pub fn parse_command(args: &[String]) -> Result<ParsedCommand, ParseError> {
+pub fn parse_command(args: Vec<String>) -> Result<ParsedCommand, ParseError> {
     let mut parsed_args: Vec<String> = Vec::new();
     let mut expected_redirect = ExpectedRedirect::NoRedirect;
     let mut std_out: Option<Redirect> = None;
     let mut std_err: Option<Redirect> = None;
-    if args.is_empty() {
-        return Err(ParseError::NoCmd);
-    }
-    let cmd = args[0].clone();
-    for arg in args[1..].iter() {
+
+    let mut iter = args.into_iter();
+    let cmd = iter.next().ok_or(ParseError::NoCmd)?;
+    for arg in iter {
         match expected_redirect {
             ExpectedRedirect::Stdout => {
-                std_out = Some(Redirect::Truncate(arg.clone()));
+                std_out = Some(Redirect::Truncate(arg));
                 expected_redirect = ExpectedRedirect::NoRedirect;
             }
             ExpectedRedirect::Stderr => {
-                std_err = Some(Redirect::Truncate(arg.clone()));
+                std_err = Some(Redirect::Truncate(arg));
                 expected_redirect = ExpectedRedirect::NoRedirect;
             }
             ExpectedRedirect::StdoutAppend => {
-                std_out = Some(Redirect::Append(arg.clone()));
+                std_out = Some(Redirect::Append(arg));
                 expected_redirect = ExpectedRedirect::NoRedirect;
             }
             ExpectedRedirect::StderrAppend => {
-                std_err = Some(Redirect::Append(arg.clone()));
+                std_err = Some(Redirect::Append(arg));
                 expected_redirect = ExpectedRedirect::NoRedirect;
             }
             ExpectedRedirect::NoRedirect => match arg.as_str() {
@@ -77,14 +76,14 @@ pub fn parse_command(args: &[String]) -> Result<ParsedCommand, ParseError> {
                     expected_redirect = ExpectedRedirect::StderrAppend;
                 }
                 _ => {
-                    parsed_args.push(arg.clone());
+                    parsed_args.push(arg);
                 }
             },
         }
     }
-    let result = match expected_redirect {
+    match expected_redirect {
         ExpectedRedirect::NoRedirect => Ok(ParsedCommand {
-            cmd: cmd,
+            cmd,
             args: parsed_args,
             stdout: std_out,
             stderr: std_err,
@@ -101,6 +100,5 @@ pub fn parse_command(args: &[String]) -> Result<ParsedCommand, ParseError> {
         ExpectedRedirect::StderrAppend => Err(ParseError::MissingFileName(
             "Missing file name for 2>>".to_string(),
         )),
-    };
-    result
+    }
 }

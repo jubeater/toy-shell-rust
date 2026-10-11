@@ -94,7 +94,7 @@ fn complete_filenames(prefix: &str) -> std::io::Result<Vec<String>> {
             continue;
         }
 
-        let Ok(metadata) = std::fs::metadata(entry.path()) else {
+        let Ok(metadata) = entry.metadata() else {
             continue;
         };
 
