@@ -106,7 +106,21 @@ impl Builtin {
                 Ok(BuiltinResult::Continue)
             }
 
-            Self::Complete => Ok(BuiltinResult::Continue),
+            Self::Complete => {
+                let Some(flag) = args.first() else {
+                    return Ok(BuiltinResult::Continue);
+                };
+                match flag.as_str() {
+                    "-p" => {
+                        if let Some(cmd) = args.get(1) {
+                            writeln!(stdout, "complete: {}: no completion specification", cmd)?;
+                        }
+                    }
+                    _ => {}
+                }
+
+                Ok(BuiltinResult::Continue)
+            }
         }
     }
 
