@@ -7,6 +7,7 @@ pub enum Builtin {
     Type,
     Pwd,
     Cd,
+    Complete,
 }
 pub enum BuiltinResult {
     Continue,
@@ -14,7 +15,7 @@ pub enum BuiltinResult {
 }
 
 impl Builtin {
-    pub const ALL: &'static [&'static str] = &["exit", "echo", "type", "pwd", "cd"];
+    pub const ALL: &'static [&'static str] = &["exit", "echo", "type", "pwd", "cd", "complete"];
     pub fn from_cmd(cmd: &str) -> Option<Self> {
         match cmd {
             "exit" => Some(Self::Exit),
@@ -22,6 +23,7 @@ impl Builtin {
             "type" => Some(Self::Type),
             "pwd" => Some(Self::Pwd),
             "cd" => Some(Self::Cd),
+            "complete" => Some(Self::Complete),
             _ => None,
         }
     }
@@ -33,6 +35,7 @@ impl Builtin {
             Self::Type => "type",
             Self::Pwd => "pwd",
             Self::Cd => "cd",
+            Self::Complete => "complete",
         }
     }
 
@@ -102,6 +105,8 @@ impl Builtin {
                 }
                 Ok(BuiltinResult::Continue)
             }
+
+            Self::Complete => Ok(BuiltinResult::Continue),
         }
     }
 
