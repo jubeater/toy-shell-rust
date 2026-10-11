@@ -1,4 +1,3 @@
-// builtin.rs
 use crate::executable::find_executable;
 use std::{env, io, io::Write};
 pub enum Builtin {
@@ -25,17 +24,6 @@ impl Builtin {
             "cd" => Some(Self::Cd),
             "complete" => Some(Self::Complete),
             _ => None,
-        }
-    }
-
-    pub fn _name(&self) -> &'static str {
-        match self {
-            Self::Exit => "exit",
-            Self::Echo => "echo",
-            Self::Type => "type",
-            Self::Pwd => "pwd",
-            Self::Cd => "cd",
-            Self::Complete => "complete",
         }
     }
 
@@ -94,12 +82,7 @@ impl Builtin {
                 if Self::from_cmd(cmd).is_some() {
                     writeln!(stdout, "{} is a shell builtin", cmd)?;
                 } else if let Some(cmd_path) = find_executable(cmd) {
-                    writeln!(
-                        stdout,
-                        "{} is {}",
-                        cmd,
-                        cmd_path.to_string_lossy().into_owned()
-                    )?;
+                    writeln!(stdout, "{} is {}", cmd, cmd_path.to_string_lossy())?;
                 } else {
                     writeln!(stdout, "{}: not found", cmd)?;
                 }

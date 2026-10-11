@@ -1,4 +1,3 @@
-// main.rs
 use std::io::{self, IsTerminal, Write};
 
 use rustyline::error::ReadlineError;

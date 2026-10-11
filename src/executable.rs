@@ -1,4 +1,3 @@
-// executable.rs
 use crate::parser::Redirect;
 use std::env;
 use std::fs;
@@ -34,13 +33,8 @@ pub fn execute_external(
 
 pub fn find_executable(cmd: &str) -> Option<PathBuf> {
     let path_var = env::var_os("PATH")?;
-    let target_name = if cfg!(windows) {
-        format!("{}.exe", cmd)
-    } else {
-        cmd.to_string()
-    };
     for mut path in env::split_paths(&path_var) {
-        path.push(&target_name);
+        path.push(cmd);
         if let Ok(metadata) = fs::metadata(&path)
             && metadata.is_file()
             && (metadata.permissions().mode() & 0o111) != 0
@@ -83,6 +77,8 @@ pub fn complete(prefix: &str) -> Vec<String> {
             }
         }
     }
+    matches.sort();
+    matches.dedup();
 
     matches
 }

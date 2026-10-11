@@ -1,4 +1,3 @@
-// parser.rs
 use std::fs::{File, OpenOptions};
 use std::io;
 
@@ -44,7 +43,7 @@ pub fn parse_command(args: Vec<String>) -> Result<ParsedCommand, ParseError> {
 
     let mut iter = args.into_iter();
     let cmd = iter.next().ok_or(ParseError::NoCmd)?;
-    for arg in iter {
+    while let Some(arg) = iter.next() {
         match expected_redirect {
             ExpectedRedirect::Stdout => {
                 std_out = Some(Redirect::Truncate(arg));
