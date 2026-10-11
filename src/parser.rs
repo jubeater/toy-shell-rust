@@ -1,4 +1,6 @@
 // parser.rs
+use std::fs::{File, OpenOptions};
+use std::io;
 
 pub struct ParsedCommand {
     pub cmd: String,
@@ -10,6 +12,15 @@ pub struct ParsedCommand {
 pub enum Redirect {
     Truncate(String),
     Append(String),
+}
+
+impl Redirect {
+    pub fn open(&self) -> io::Result<File> {
+        match self {
+            Self::Truncate(path) => File::create(path),
+            Self::Append(path) => OpenOptions::new().create(true).append(true).open(path),
+        }
+    }
 }
 
 pub enum ParseError {

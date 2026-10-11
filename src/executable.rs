@@ -1,47 +1,34 @@
+// executable.rs
 use crate::parser::Redirect;
 use std::env;
 use std::fs;
-use std::fs::File;
-use std::fs::OpenOptions;
+use std::io;
 use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
-use std::process::Command;
-use std::process::Stdio;
+use std::process::{Command, Stdio};
 
 pub fn execute_external(
     cmd: &str,
     args: &[String],
     stdout: Option<&Redirect>,
     stderr: Option<&Redirect>,
-) {
+) -> io::Result<()> {
     if find_executable(cmd).is_some() {
         let mut command = Command::new(cmd);
         command.args(args);
         if let Some(redirect) = stdout {
-            let file = match redirect {
-                Redirect::Truncate(path) => File::create(path).unwrap(),
-                Redirect::Append(path) => OpenOptions::new()
-                    .create(true)
-                    .append(true)
-                    .open(path)
-                    .unwrap(),
-            };
+            let file = redirect.open()?;
             command.stdout(Stdio::from(file));
         }
         if let Some(redirect) = stderr {
-            let file = match redirect {
-                Redirect::Truncate(path) => File::create(path).unwrap(),
-                Redirect::Append(path) => OpenOptions::new()
-                    .create(true)
-                    .append(true)
-                    .open(path)
-                    .unwrap(),
-            };
+            let file = redirect.open()?;
             command.stderr(Stdio::from(file));
         }
-        command.status().unwrap();
+        command.status()?;
+        Ok(())
     } else {
         println!("{}: command not found", cmd.trim());
+        Ok(())
     }
 }
 

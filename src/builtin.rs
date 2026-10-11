@@ -1,5 +1,6 @@
+// builtin.rs
 use crate::executable::find_executable;
-use std::{env, io::Write};
+use std::{env, io, io::Write};
 pub enum Builtin {
     Exit,
     Echo,
@@ -40,19 +41,19 @@ impl Builtin {
         args: &[String],
         stdout: &mut dyn Write,
         stderr: &mut dyn Write,
-    ) -> BuiltinResult {
+    ) -> io::Result<BuiltinResult> {
         match self {
-            Self::Exit => BuiltinResult::Exit,
+            Self::Exit => Ok(BuiltinResult::Exit),
 
             Self::Echo => {
-                writeln!(stdout, "{}", args.join(" ")).unwrap();
-                BuiltinResult::Continue
+                writeln!(stdout, "{}", args.join(" "))?;
+                Ok(BuiltinResult::Continue)
             }
 
             Self::Pwd => {
-                let path = env::current_dir().unwrap();
-                writeln!(stdout, "{}", path.to_string_lossy()).unwrap();
-                BuiltinResult::Continue
+                let path = env::current_dir()?;
+                writeln!(stdout, "{}", path.to_string_lossy())?;
+                Ok(BuiltinResult::Continue)
             }
 
             Self::Cd => {
@@ -62,34 +63,33 @@ impl Builtin {
                             if args.len() > 1 {
                                 home.push(&path[1..]);
                             };
-                            env::set_current_dir(&home).unwrap();
+                            env::set_current_dir(&home)?;
                         } else {
-                            writeln!(stderr, "Unable to detect the home directory.").unwrap();
+                            writeln!(stderr, "Unable to detect the home directory.")?;
                         }
                     } else if env::set_current_dir(path).is_err() {
-                        writeln!(stdout, "cd: {}: No such file or directory", path).unwrap();
+                        writeln!(stdout, "cd: {}: No such file or directory", path)?;
                     }
                 }
-                BuiltinResult::Continue
+                Ok(BuiltinResult::Continue)
             }
 
             Self::Type => {
                 if let Some(cmd) = args.first() {
                     if Self::from_cmd(cmd).is_some() {
-                        writeln!(stdout, "{} is a shell builtin", cmd).unwrap();
+                        writeln!(stdout, "{} is a shell builtin", cmd)?;
                     } else if let Some(cmd_path) = find_executable(cmd) {
                         writeln!(
                             stdout,
                             "{} is {}",
                             cmd,
                             cmd_path.to_string_lossy().into_owned()
-                        )
-                        .unwrap();
+                        )?;
                     } else {
-                        writeln!(stdout, "{}: not found", cmd).unwrap();
+                        writeln!(stdout, "{}: not found", cmd)?;
                     }
                 }
-                BuiltinResult::Continue
+                Ok(BuiltinResult::Continue)
             }
         }
     }
