@@ -57,20 +57,29 @@ impl Builtin {
             }
 
             Self::Cd => {
-                if let Some(path) = args.first() {
-                    if path.starts_with('~') {
-                        if let Some(mut home) = env::home_dir() {
-                            if args.len() > 1 {
-                                home.push(&path[1..]);
-                            };
-                            env::set_current_dir(&home)?;
-                        } else {
-                            writeln!(stderr, "Unable to detect the home directory.")?;
-                        }
-                    } else if env::set_current_dir(path).is_err() {
-                        writeln!(stdout, "cd: {}: No such file or directory", path)?;
+                let Some(path) = args.first() else {
+                    return Ok(BuiltinResult::Continue);
+                };
+
+                let target = if path == "~" || path.starts_with("~/") {
+                    let Some(mut home) = env::home_dir() else {
+                        writeln!(stderr, "Unable to detect the home directory.")?;
+                        return Ok(BuiltinResult::Continue);
+                    };
+
+                    if let Some(relative) = path.strip_prefix("~/") {
+                        home.push(relative);
                     }
+
+                    home
+                } else {
+                    path.into()
+                };
+
+                if env::set_current_dir(&target).is_err() {
+                    writeln!(stdout, "cd: {}: No such file or directory", path)?;
                 }
+
                 Ok(BuiltinResult::Continue)
             }
 
