@@ -116,6 +116,9 @@ impl Builtin {
                             writeln!(stdout, "complete: {}: no completion specification", cmd)?;
                         }
                     }
+                    "-C" => {
+                        todo!()
+                    }
                     _ => {}
                 }
 
