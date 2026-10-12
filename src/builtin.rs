@@ -1,5 +1,7 @@
 use crate::executable::find_executable;
 use std::{env, io, io::Write};
+
+#[derive(Clone, Copy)]
 pub enum Builtin {
     Exit,
     Echo,
@@ -14,17 +16,32 @@ pub enum BuiltinResult {
 }
 
 impl Builtin {
-    pub const ALL: &[&str] = &["exit", "echo", "type", "pwd", "cd", "complete"];
-    pub fn from_cmd(cmd: &str) -> Option<Self> {
-        match cmd {
-            "exit" => Some(Self::Exit),
-            "echo" => Some(Self::Echo),
-            "type" => Some(Self::Type),
-            "pwd" => Some(Self::Pwd),
-            "cd" => Some(Self::Cd),
-            "complete" => Some(Self::Complete),
-            _ => None,
+    pub const ALL: &[Self] = &[
+        Self::Exit,
+        Self::Echo,
+        Self::Type,
+        Self::Pwd,
+        Self::Cd,
+        Self::Complete,
+    ];
+
+    /// The name this builtin is invoked as.
+    ///
+    /// Exhaustive by construction: adding a variant fails to compile until it is
+    /// named here, which keeps `ALL`, `from_cmd`, and `complete` in sync.
+    pub fn name(&self) -> &'static str {
+        match self {
+            Self::Exit => "exit",
+            Self::Echo => "echo",
+            Self::Type => "type",
+            Self::Pwd => "pwd",
+            Self::Cd => "cd",
+            Self::Complete => "complete",
         }
+    }
+
+    pub fn from_cmd(cmd: &str) -> Option<Self> {
+        Self::ALL.iter().copied().find(|builtin| builtin.name() == cmd)
     }
 
     pub fn execute(
@@ -113,7 +130,7 @@ impl Builtin {
     pub fn complete(prefix: &str) -> Vec<&'static str> {
         Self::ALL
             .iter()
-            .copied()
+            .map(|builtin| builtin.name())
             .filter(|name| name.starts_with(prefix))
             .collect()
     }

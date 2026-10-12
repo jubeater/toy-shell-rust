@@ -1,6 +1,9 @@
+use std::fmt;
 use std::fs::{File, OpenOptions};
 use std::io;
 
+/// A parsed command line, ready to dispatch.
+#[derive(Debug)]
 pub struct ParsedCommand {
     pub cmd: String,
     pub args: Vec<String>,
@@ -8,6 +11,7 @@ pub struct ParsedCommand {
     pub stderr: Option<Redirect>,
 }
 
+#[derive(Debug)]
 pub enum Redirect {
     Truncate(String),
     Append(String),
@@ -22,10 +26,28 @@ impl Redirect {
     }
 }
 
+/// A command line that could not be turned into a runnable command.
+#[derive(Debug)]
 pub enum ParseError {
+    /// The line was non-empty but contained no command word.
     NoCmd,
-    MissingFileName(String),
+    /// A redirect operator was given without a file name.
+    ///
+    /// Carries the operator spelling (e.g. `"> or 1>"`) so the message names the
+    /// exact form the user typed rather than a normalized one.
+    MissingFileName(&'static str),
 }
+
+impl fmt::Display for ParseError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::NoCmd => write!(f, "no command given"),
+            Self::MissingFileName(operator) => write!(f, "Missing file name for {operator}"),
+        }
+    }
+}
+
+impl std::error::Error for ParseError {}
 
 enum ExpectedRedirect {
     Stdout,
@@ -87,17 +109,9 @@ pub fn parse_command(args: Vec<String>) -> Result<ParsedCommand, ParseError> {
             stdout: std_out,
             stderr: std_err,
         }),
-        ExpectedRedirect::Stdout => Err(ParseError::MissingFileName(
-            "Missing file name for > or 1>".to_string(),
-        )),
-        ExpectedRedirect::Stderr => Err(ParseError::MissingFileName(
-            "Missing file name for 2>".to_string(),
-        )),
-        ExpectedRedirect::StdoutAppend => Err(ParseError::MissingFileName(
-            "Missing file name for >> or 1>>".to_string(),
-        )),
-        ExpectedRedirect::StderrAppend => Err(ParseError::MissingFileName(
-            "Missing file name for 2>>".to_string(),
-        )),
+        ExpectedRedirect::Stdout => Err(ParseError::MissingFileName("> or 1>")),
+        ExpectedRedirect::Stderr => Err(ParseError::MissingFileName("2>")),
+        ExpectedRedirect::StdoutAppend => Err(ParseError::MissingFileName(">> or 1>>")),
+        ExpectedRedirect::StderrAppend => Err(ParseError::MissingFileName("2>>")),
     }
 }
