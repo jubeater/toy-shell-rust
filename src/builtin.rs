@@ -1,4 +1,4 @@
-use crate::executable::find_executable;
+use crate::{ShellControl, executable::find_executable};
 use std::{env, io, io::Write};
 
 #[derive(Clone, Copy)]
@@ -10,12 +10,9 @@ pub enum Builtin {
     Cd,
     Complete,
 }
-pub enum BuiltinResult {
-    Continue,
-    Exit,
-}
 
 impl Builtin {
+    /// Builtins available for lookup and completion. Add new variants here too.
     pub const ALL: &[Self] = &[
         Self::Exit,
         Self::Echo,
@@ -26,9 +23,6 @@ impl Builtin {
     ];
 
     /// The name this builtin is invoked as.
-    ///
-    /// Exhaustive by construction: adding a variant fails to compile until it is
-    /// named here, which keeps `ALL`, `from_cmd`, and `complete` in sync.
     pub fn name(&self) -> &'static str {
         match self {
             Self::Exit => "exit",
@@ -52,30 +46,30 @@ impl Builtin {
         args: &[String],
         stdout: &mut dyn Write,
         stderr: &mut dyn Write,
-    ) -> io::Result<BuiltinResult> {
+    ) -> io::Result<ShellControl> {
         match self {
-            Self::Exit => Ok(BuiltinResult::Exit),
+            Self::Exit => Ok(ShellControl::Exit),
 
             Self::Echo => {
                 writeln!(stdout, "{}", args.join(" "))?;
-                Ok(BuiltinResult::Continue)
+                Ok(ShellControl::Continue)
             }
 
             Self::Pwd => {
                 let path = env::current_dir()?;
                 writeln!(stdout, "{}", path.to_string_lossy())?;
-                Ok(BuiltinResult::Continue)
+                Ok(ShellControl::Continue)
             }
 
             Self::Cd => {
                 let Some(path) = args.first() else {
-                    return Ok(BuiltinResult::Continue);
+                    return Ok(ShellControl::Continue);
                 };
 
                 let target = if path == "~" || path.starts_with("~/") {
                     let Some(mut home) = env::home_dir() else {
                         writeln!(stderr, "Unable to detect the home directory.")?;
-                        return Ok(BuiltinResult::Continue);
+                        return Ok(ShellControl::Continue);
                     };
 
                     if let Some(relative) = path.strip_prefix("~/") {
@@ -91,12 +85,12 @@ impl Builtin {
                     writeln!(stdout, "cd: {}: No such file or directory", path)?;
                 }
 
-                Ok(BuiltinResult::Continue)
+                Ok(ShellControl::Continue)
             }
 
             Self::Type => {
                 let Some(cmd) = args.first() else {
-                    return Ok(BuiltinResult::Continue);
+                    return Ok(ShellControl::Continue);
                 };
 
                 if Self::from_cmd(cmd).is_some() {
@@ -106,12 +100,12 @@ impl Builtin {
                 } else {
                     writeln!(stdout, "{}: not found", cmd)?;
                 }
-                Ok(BuiltinResult::Continue)
+                Ok(ShellControl::Continue)
             }
 
             Self::Complete => {
                 let Some(flag) = args.first() else {
-                    return Ok(BuiltinResult::Continue);
+                    return Ok(ShellControl::Continue);
                 };
                 match flag.as_str() {
                     "-p" => {
@@ -125,7 +119,7 @@ impl Builtin {
                     _ => {}
                 }
 
-                Ok(BuiltinResult::Continue)
+                Ok(ShellControl::Continue)
             }
         }
     }

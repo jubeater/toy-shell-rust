@@ -33,8 +33,7 @@ pub enum ParseError {
     NoCmd,
     /// A redirect operator was given without a file name.
     ///
-    /// Carries the operator spelling (e.g. `"> or 1>"`) so the message names the
-    /// exact form the user typed rather than a normalized one.
+    /// Carries an operator label (e.g. `"> or 1>"`) for the error message.
     MissingFileName(&'static str),
 }
 
@@ -73,19 +72,19 @@ impl PendingRedirect {
 
 pub fn parse_command(args: Vec<String>) -> Result<ParsedCommand, ParseError> {
     let mut parsed_args: Vec<String> = Vec::new();
-    let mut pending: Option<PendingRedirect> = None;
-    let mut std_out: Option<Redirect> = None;
-    let mut std_err: Option<Redirect> = None;
+    let mut pending_redirect: Option<PendingRedirect> = None;
+    let mut stdout: Option<Redirect> = None;
+    let mut stderr: Option<Redirect> = None;
 
     let mut iter = args.into_iter();
     let cmd = iter.next().ok_or(ParseError::NoCmd)?;
     for arg in iter {
-        // take() moves the pending operator out and resets to None
-        if let Some(p) = pending.take() {
-            let (stream, redirect) = p.into_redirect(arg);
+        // The token following a redirect operator is its filename.
+        if let Some(pending_redirect) = pending_redirect.take() {
+            let (stream, redirect) = pending_redirect.into_redirect(arg);
             match stream {
-                Stream::Stdout => std_out = Some(redirect),
-                Stream::Stderr => std_err = Some(redirect),
+                Stream::Stdout => stdout = Some(redirect),
+                Stream::Stderr => stderr = Some(redirect),
             }
             continue;
         }
@@ -99,19 +98,19 @@ pub fn parse_command(args: Vec<String>) -> Result<ParsedCommand, ParseError> {
                 continue;
             }
         };
-        pending = Some(PendingRedirect {
+        pending_redirect = Some(PendingRedirect {
             stream,
             append,
             operator,
         });
     }
-    match pending {
+    match pending_redirect {
         None => Ok(ParsedCommand {
             cmd,
             args: parsed_args,
-            stdout: std_out,
-            stderr: std_err,
+            stdout,
+            stderr,
         }),
-        Some(p) => Err(ParseError::MissingFileName(p.operator)),
+        Some(pending_redirect) => Err(ParseError::MissingFileName(pending_redirect.operator)),
     }
 }

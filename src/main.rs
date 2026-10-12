@@ -15,7 +15,7 @@ use parser::{Redirect, parse_command};
 type ShellEditor = Editor<ShellHelper, DefaultHistory>;
 
 /// Loop control for the REPL: `Continue` keeps prompting, `Exit` breaks out.
-enum Control {
+pub(crate) enum ShellControl {
     Continue,
     Exit,
 }
@@ -51,22 +51,22 @@ fn open_stream(
     }
 }
 
-fn run_line(input: &str) -> io::Result<Control> {
+fn run_line(input: &str) -> io::Result<ShellControl> {
     if input.trim().is_empty() {
-        return Ok(Control::Continue);
+        return Ok(ShellControl::Continue);
     }
     let parts = match shell_words::split(input) {
         Ok(parts) => parts,
         Err(err) => {
             eprintln!("{err}");
-            return Ok(Control::Continue);
+            return Ok(ShellControl::Continue);
         }
     };
     let parsed = match parse_command(parts) {
         Ok(parsed) => parsed,
         Err(err) => {
             eprintln!("{err}");
-            return Ok(Control::Continue);
+            return Ok(ShellControl::Continue);
         }
     };
     match builtin::Builtin::from_cmd(&parsed.cmd) {
@@ -74,10 +74,7 @@ fn run_line(input: &str) -> io::Result<Control> {
             let mut stdout = open_stream(parsed.stdout.as_ref(), || Box::new(io::stdout()))?;
             let mut stderr = open_stream(parsed.stderr.as_ref(), || Box::new(io::stderr()))?;
 
-            match builtin.execute(&parsed.args, stdout.as_mut(), stderr.as_mut())? {
-                builtin::BuiltinResult::Continue => Ok(Control::Continue),
-                builtin::BuiltinResult::Exit => Ok(Control::Exit),
-            }
+            builtin.execute(&parsed.args, stdout.as_mut(), stderr.as_mut())
         }
         None => {
             executable::execute_external(
@@ -86,7 +83,7 @@ fn run_line(input: &str) -> io::Result<Control> {
                 parsed.stdout.as_ref(),
                 parsed.stderr.as_ref(),
             )?;
-            Ok(Control::Continue)
+            Ok(ShellControl::Continue)
         }
     }
 }
@@ -103,8 +100,8 @@ fn main() -> io::Result<()> {
     editor.set_helper(Some(ShellHelper::new()));
     while let Some(input) = read_input(interactive, &mut editor)? {
         match run_line(&input)? {
-            Control::Continue => {}
-            Control::Exit => break,
+            ShellControl::Continue => {}
+            ShellControl::Exit => break,
         }
     }
     Ok(())
