@@ -49,69 +49,69 @@ impl fmt::Display for ParseError {
 
 impl std::error::Error for ParseError {}
 
-enum ExpectedRedirect {
+enum Stream {
     Stdout,
-    StdoutAppend,
     Stderr,
-    StderrAppend,
-    NoRedirect,
+}
+
+struct PendingRedirect {
+    stream: Stream,
+    append: bool,
+    operator: &'static str,
+}
+
+impl PendingRedirect {
+    fn into_redirect(self, file: String) -> (Stream, Redirect) {
+        let redirect = if self.append {
+            Redirect::Append(file)
+        } else {
+            Redirect::Truncate(file)
+        };
+        (self.stream, redirect)
+    }
 }
 
 pub fn parse_command(args: Vec<String>) -> Result<ParsedCommand, ParseError> {
     let mut parsed_args: Vec<String> = Vec::new();
-    let mut expected_redirect = ExpectedRedirect::NoRedirect;
+    let mut pending: Option<PendingRedirect> = None;
     let mut std_out: Option<Redirect> = None;
     let mut std_err: Option<Redirect> = None;
 
     let mut iter = args.into_iter();
     let cmd = iter.next().ok_or(ParseError::NoCmd)?;
     for arg in iter {
-        match expected_redirect {
-            ExpectedRedirect::Stdout => {
-                std_out = Some(Redirect::Truncate(arg));
-                expected_redirect = ExpectedRedirect::NoRedirect;
+        // take() moves the pending operator out and resets to None
+        if let Some(p) = pending.take() {
+            let (stream, redirect) = p.into_redirect(arg);
+            match stream {
+                Stream::Stdout => std_out = Some(redirect),
+                Stream::Stderr => std_err = Some(redirect),
             }
-            ExpectedRedirect::Stderr => {
-                std_err = Some(Redirect::Truncate(arg));
-                expected_redirect = ExpectedRedirect::NoRedirect;
-            }
-            ExpectedRedirect::StdoutAppend => {
-                std_out = Some(Redirect::Append(arg));
-                expected_redirect = ExpectedRedirect::NoRedirect;
-            }
-            ExpectedRedirect::StderrAppend => {
-                std_err = Some(Redirect::Append(arg));
-                expected_redirect = ExpectedRedirect::NoRedirect;
-            }
-            ExpectedRedirect::NoRedirect => match arg.as_str() {
-                ">" | "1>" => {
-                    expected_redirect = ExpectedRedirect::Stdout;
-                }
-                "2>" => {
-                    expected_redirect = ExpectedRedirect::Stderr;
-                }
-                ">>" | "1>>" => {
-                    expected_redirect = ExpectedRedirect::StdoutAppend;
-                }
-                "2>>" => {
-                    expected_redirect = ExpectedRedirect::StderrAppend;
-                }
-                _ => {
-                    parsed_args.push(arg);
-                }
-            },
+            continue;
         }
+        let (stream, append, operator) = match arg.as_str() {
+            ">" | "1>" => (Stream::Stdout, false, "> or 1>"),
+            "2>" => (Stream::Stderr, false, "2>"),
+            ">>" | "1>>" => (Stream::Stdout, true, ">> or 1>>"),
+            "2>>" => (Stream::Stderr, true, "2>>"),
+            _ => {
+                parsed_args.push(arg);
+                continue;
+            }
+        };
+        pending = Some(PendingRedirect {
+            stream,
+            append,
+            operator,
+        });
     }
-    match expected_redirect {
-        ExpectedRedirect::NoRedirect => Ok(ParsedCommand {
+    match pending {
+        None => Ok(ParsedCommand {
             cmd,
             args: parsed_args,
             stdout: std_out,
             stderr: std_err,
         }),
-        ExpectedRedirect::Stdout => Err(ParseError::MissingFileName("> or 1>")),
-        ExpectedRedirect::Stderr => Err(ParseError::MissingFileName("2>")),
-        ExpectedRedirect::StdoutAppend => Err(ParseError::MissingFileName(">> or 1>>")),
-        ExpectedRedirect::StderrAppend => Err(ParseError::MissingFileName("2>>")),
+        Some(p) => Err(ParseError::MissingFileName(p.operator)),
     }
 }
