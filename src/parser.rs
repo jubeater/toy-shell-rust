@@ -65,7 +65,7 @@ pub fn parse_command(args: Vec<String>) -> Result<ParsedCommand, ParseError> {
 
     let mut iter = args.into_iter();
     let cmd = iter.next().ok_or(ParseError::NoCmd)?;
-    while let Some(arg) = iter.next() {
+    for arg in iter {
         match expected_redirect {
             ExpectedRedirect::Stdout => {
                 std_out = Some(Redirect::Truncate(arg));

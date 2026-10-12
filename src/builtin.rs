@@ -41,7 +41,10 @@ impl Builtin {
     }
 
     pub fn from_cmd(cmd: &str) -> Option<Self> {
-        Self::ALL.iter().copied().find(|builtin| builtin.name() == cmd)
+        Self::ALL
+            .iter()
+            .copied()
+            .find(|builtin| builtin.name() == cmd)
     }
 
     pub fn execute(

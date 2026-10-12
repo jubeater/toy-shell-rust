@@ -10,9 +10,15 @@ mod executable;
 mod parser;
 
 use completion::ShellHelper;
-use parser::parse_command;
+use parser::{Redirect, parse_command};
 
 type ShellEditor = Editor<ShellHelper, DefaultHistory>;
+
+/// Loop control for the REPL: `Continue` keeps prompting, `Exit` breaks out.
+enum Control {
+    Continue,
+    Exit,
+}
 
 fn read_input(interactive: bool, editor: &mut ShellEditor) -> io::Result<Option<String>> {
     if interactive {
@@ -35,6 +41,56 @@ fn read_input(interactive: bool, editor: &mut ShellEditor) -> io::Result<Option<
     }
 }
 
+fn open_stream(
+    redirect: Option<&Redirect>,
+    default: fn() -> Box<dyn Write>,
+) -> io::Result<Box<dyn Write>> {
+    match redirect {
+        None => Ok(default()),
+        Some(redirect) => Ok(Box::new(redirect.open()?)),
+    }
+}
+
+fn run_line(input: &str) -> io::Result<Control> {
+    if input.trim().is_empty() {
+        return Ok(Control::Continue);
+    }
+    let parts = match shell_words::split(input) {
+        Ok(parts) => parts,
+        Err(err) => {
+            eprintln!("{err}");
+            return Ok(Control::Continue);
+        }
+    };
+    let parsed = match parse_command(parts) {
+        Ok(parsed) => parsed,
+        Err(err) => {
+            eprintln!("{err}");
+            return Ok(Control::Continue);
+        }
+    };
+    match builtin::Builtin::from_cmd(&parsed.cmd) {
+        Some(builtin) => {
+            let mut stdout = open_stream(parsed.stdout.as_ref(), || Box::new(io::stdout()))?;
+            let mut stderr = open_stream(parsed.stderr.as_ref(), || Box::new(io::stderr()))?;
+
+            match builtin.execute(&parsed.args, stdout.as_mut(), stderr.as_mut())? {
+                builtin::BuiltinResult::Continue => Ok(Control::Continue),
+                builtin::BuiltinResult::Exit => Ok(Control::Exit),
+            }
+        }
+        None => {
+            executable::execute_external(
+                &parsed.cmd,
+                &parsed.args,
+                parsed.stdout.as_ref(),
+                parsed.stderr.as_ref(),
+            )?;
+            Ok(Control::Continue)
+        }
+    }
+}
+
 fn main() -> io::Result<()> {
     let interactive = io::stdin().is_terminal();
 
@@ -46,46 +102,9 @@ fn main() -> io::Result<()> {
 
     editor.set_helper(Some(ShellHelper::new()));
     while let Some(input) = read_input(interactive, &mut editor)? {
-        if input.trim().is_empty() {
-            continue;
-        }
-        let parts = match shell_words::split(&input) {
-            Ok(parts) => parts,
-            Err(err) => {
-                eprintln!("{err}");
-                continue;
-            }
-        };
-        let parsed = match parse_command(parts) {
-            Ok(parsed) => parsed,
-            Err(_) => {
-                eprintln!("err!");
-                continue;
-            }
-        };
-        match builtin::Builtin::from_cmd(&parsed.cmd) {
-            Some(builtin) => {
-                let mut stdout: Box<dyn Write> = match &parsed.stdout {
-                    None => Box::new(io::stdout()),
-                    Some(redirect) => Box::new(redirect.open()?),
-                };
-
-                let mut stderr: Box<dyn Write> = match &parsed.stderr {
-                    None => Box::new(io::stderr()),
-                    Some(redirect) => Box::new(redirect.open()?),
-                };
-
-                match builtin.execute(&parsed.args, stdout.as_mut(), stderr.as_mut())? {
-                    builtin::BuiltinResult::Continue => {}
-                    builtin::BuiltinResult::Exit => break,
-                }
-            }
-            None => executable::execute_external(
-                &parsed.cmd,
-                &parsed.args,
-                parsed.stdout.as_ref(),
-                parsed.stderr.as_ref(),
-            )?,
+        match run_line(&input)? {
+            Control::Continue => {}
+            Control::Exit => break,
         }
     }
     Ok(())
