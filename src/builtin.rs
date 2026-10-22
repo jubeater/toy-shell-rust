@@ -118,7 +118,7 @@ impl Builtin {
                     "-p" => {
                         if let Some(cmd) = args.get(1) {
                             if let Some(path) = registry.get(cmd) {
-                                writeln!(stdout, "complete -C {}: {}", path, cmd)?;
+                                writeln!(stdout, "complete -C '{}' {}", path, cmd)?;
                             } else {
                                 writeln!(stdout, "complete: {}: no completion specification", cmd)?;
                             }
