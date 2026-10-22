@@ -13,7 +13,7 @@ pub fn execute_external(
     stderr: Option<&Redirect>,
 ) -> io::Result<()> {
     if let Some(path) = find_executable(cmd) {
-        let mut command = Command::new(path);
+        let mut command = Command::new(cmd);
         command.args(args);
         if let Some(redirect) = stdout {
             let file = redirect.open()?;
