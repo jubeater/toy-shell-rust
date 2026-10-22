@@ -9,6 +9,7 @@ mod completion;
 mod executable;
 mod parser;
 
+use builtin::CompletionRegistry;
 use completion::ShellHelper;
 use parser::{Redirect, parse_command};
 
@@ -51,7 +52,7 @@ fn open_stream(
     }
 }
 
-fn run_line(input: &str) -> io::Result<ShellControl> {
+fn run_line(input: &str, registry: &mut CompletionRegistry) -> io::Result<ShellControl> {
     if input.trim().is_empty() {
         return Ok(ShellControl::Continue);
     }
@@ -74,7 +75,7 @@ fn run_line(input: &str) -> io::Result<ShellControl> {
             let mut stdout = open_stream(parsed.stdout.as_ref(), || Box::new(io::stdout()))?;
             let mut stderr = open_stream(parsed.stderr.as_ref(), || Box::new(io::stderr()))?;
 
-            builtin.execute(&parsed.args, stdout.as_mut(), stderr.as_mut())
+            builtin.execute(&parsed.args, registry, stdout.as_mut(), stderr.as_mut())
         }
         None => {
             executable::execute_external(
@@ -96,10 +97,10 @@ fn main() -> io::Result<()> {
         .build();
 
     let mut editor = ShellEditor::with_config(config).map_err(io::Error::other)?;
-
     editor.set_helper(Some(ShellHelper::new()));
+    let mut registry = CompletionRegistry::new();
     while let Some(input) = read_input(interactive, &mut editor)? {
-        match run_line(&input)? {
+        match run_line(&input, &mut registry)? {
             ShellControl::Continue => {}
             ShellControl::Exit => break,
         }

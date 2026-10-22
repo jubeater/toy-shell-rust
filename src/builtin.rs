@@ -1,5 +1,11 @@
 use crate::{ShellControl, executable::find_executable};
-use std::{env, io, io::Write};
+use std::{
+    collections::HashMap,
+    env,
+    io::{self, Write},
+};
+
+pub type CompletionRegistry = HashMap<String, String>;
 
 #[derive(Clone, Copy)]
 pub enum Builtin {
@@ -44,6 +50,7 @@ impl Builtin {
     pub fn execute(
         &self,
         args: &[String],
+        registry: &mut CompletionRegistry,
         stdout: &mut dyn Write,
         stderr: &mut dyn Write,
     ) -> io::Result<ShellControl> {
@@ -110,11 +117,25 @@ impl Builtin {
                 match flag.as_str() {
                     "-p" => {
                         if let Some(cmd) = args.get(1) {
-                            writeln!(stdout, "complete: {}: no completion specification", cmd)?;
+                            if let Some(path) = registry.get(cmd) {
+                                writeln!(stdout, "complete -C {}: {}", path, cmd)?;
+                            } else {
+                                writeln!(stdout, "complete: {}: no completion specification", cmd)?;
+                            }
+                        } else {
+                            writeln!(stdout, "complete: no cmd to register")?;
                         }
                     }
                     "-C" => {
-                        todo!()
+                        if let Some(path) = args.get(1) {
+                            if let Some(cmd) = args.get(2) {
+                                registry.insert(cmd.clone(), path.clone());
+                            } else {
+                                writeln!(stdout, "complete: no cmd found")?;
+                            }
+                        } else {
+                            writeln!(stdout, "complete: no path found")?;
+                        }
                     }
                     _ => {}
                 }
