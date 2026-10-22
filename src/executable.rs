@@ -12,7 +12,7 @@ pub fn execute_external(
     stdout: Option<&Redirect>,
     stderr: Option<&Redirect>,
 ) -> io::Result<()> {
-    if let Some(path) = find_executable(cmd) {
+    if let Some(_path) = find_executable(cmd) {
         let mut command = Command::new(cmd);
         command.args(args);
         if let Some(redirect) = stdout {

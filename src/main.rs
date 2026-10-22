@@ -8,10 +8,11 @@ mod builtin;
 mod completion;
 mod executable;
 mod parser;
+mod registry;
 
-use builtin::CompletionRegistry;
 use completion::ShellHelper;
 use parser::{Redirect, parse_command};
+use registry::CompletionRegistry;
 
 type ShellEditor = Editor<ShellHelper, DefaultHistory>;
 

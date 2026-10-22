@@ -1,11 +1,8 @@
-use crate::{ShellControl, executable::find_executable};
+use crate::{ShellControl, executable::find_executable, registry::CompletionRegistry};
 use std::{
-    collections::HashMap,
     env,
     io::{self, Write},
 };
-
-pub type CompletionRegistry = HashMap<String, String>;
 
 #[derive(Clone, Copy)]
 pub enum Builtin {
